@@ -20,7 +20,6 @@ export default function App() {
   const [breathingType, setBreathingType] = useState("morning");
   const [mainAnswers, setMainAnswers] = useState(null);
 
-  // Flat question lists (built once)
   const flatMainQuestions = MAIN_BLOCKS.flatMap((block) =>
     block.questions.map((text, index) => ({
       blockKey: block.key,
@@ -36,9 +35,21 @@ export default function App() {
     text,
   }));
 
-  // ── Auth init ─────────────────────────────────────────────────
+  // ── Init ──────────────────────────────────────────────────────
   useEffect(() => {
-    // 1. Check current session
+    // Check for saved local profile first (demo mode)
+    const localProfile = localStorage.getItem("sr_profile");
+    if (localProfile) {
+      try {
+        setProfile(JSON.parse(localProfile));
+        setStage("dashboard");
+        return;
+      } catch (e) {
+        localStorage.removeItem("sr_profile");
+      }
+    }
+
+    // Then check Supabase session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (s) {
         setSession(s);
@@ -48,12 +59,10 @@ export default function App() {
       }
     });
 
-    // 2. Listen for auth changes (magic link click, sign out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, s) => {
         if (event === "SIGNED_IN" && s) {
           setSession(s);
-          // Check for a pending result saved before auth flow
           const pending = localStorage.getItem("sr_pending_result");
           if (pending) {
             const r = JSON.parse(pending);
@@ -62,6 +71,7 @@ export default function App() {
             if (saved) {
               setProfile(saved);
               localStorage.removeItem("sr_pending_result");
+              localStorage.removeItem("sr_profile");
               setStage("dashboard");
             }
           } else {
@@ -71,11 +81,12 @@ export default function App() {
           setSession(null);
           setProfile(null);
           setResult(null);
+          localStorage.removeItem("sr_profile");
+          localStorage.removeItem("sr_completions");
           setStage("welcome");
         }
       }
     );
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -85,7 +96,6 @@ export default function App() {
       .select("*")
       .eq("id", userId)
       .maybeSingle();
-
     if (data) {
       setProfile(data);
       setStage("dashboard");
@@ -110,7 +120,6 @@ export default function App() {
       })
       .select()
       .single();
-
     if (error) {
       console.error("saveProfile error:", error);
       return null;
@@ -141,31 +150,50 @@ export default function App() {
     setStage("result");
   }
 
-  // ── Start program (after result) ──────────────────────────────
+  // ── Start program ─────────────────────────────────────────────
+  // Va directo al dashboard. Guarda el perfil localmente.
+  // Si hay sesión de Supabase, también guarda en la base de datos.
   async function handleStartProgram() {
-    if (!session) {
-      // Save result to localStorage, then go to auth
-      localStorage.setItem("sr_pending_result", JSON.stringify(result));
-      setStage("auth");
-    } else {
-      // Already logged in: save profile and go to dashboard
-      const saved = await saveProfileToDb(session.user.id, result);
-      if (saved) {
-        setProfile(saved);
-        setStage("dashboard");
-      }
+    const today = new Date().toISOString().split("T")[0];
+    const localProfile = {
+      phenotype: result.dominant,
+      secondary: result.secondary,
+      is_mixed: result.isMixed,
+      percentages: result.percentages,
+      scores: result.scores,
+      gut_subtype: result.gutSubtype,
+      program_start_date: today,
+    };
+
+    // Guardar localmente (siempre funciona)
+    localStorage.setItem("sr_profile", JSON.stringify(localProfile));
+    setProfile(localProfile);
+
+    // Si hay sesión, guardar también en Supabase
+    if (session) {
+      await saveProfileToDb(session.user.id, result);
     }
+
+    setStage("dashboard");
   }
 
-  // ── Sign out ──────────────────────────────────────────────────
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    // onAuthStateChange → SIGNED_OUT handles state reset
-  }
-
-  // ── Restart quiz ──────────────────────────────────────────────
+  // ── Sign out / restart ────────────────────────────────────────
   function handleRestart() {
     setMainAnswers(null);
+    setResult(null);
+    localStorage.removeItem("sr_profile");
+    localStorage.removeItem("sr_completions");
+    setStage("welcome");
+  }
+
+  async function handleSignOut() {
+    localStorage.removeItem("sr_profile");
+    localStorage.removeItem("sr_completions");
+    if (session) {
+      await supabase.auth.signOut();
+    }
+    setSession(null);
+    setProfile(null);
     setResult(null);
     setStage("welcome");
   }
@@ -221,15 +249,6 @@ export default function App() {
         result={result}
         onStartProgram={handleStartProgram}
         onRestart={handleRestart}
-      />
-    );
-  }
-
-  if (stage === "auth") {
-    return (
-      <Auth
-        phenotypeKey={result?.dominant}
-        onBack={() => setStage("result")}
       />
     );
   }
