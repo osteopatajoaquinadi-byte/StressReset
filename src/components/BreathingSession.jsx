@@ -37,9 +37,8 @@ function getPatternKey(phenotype, sessionType) {
   return "5-5";
 }
 
-const SESSION_MINUTES = 5;
-
-export default function BreathingSession({ phenotype, sessionType = "morning", onClose }) {
+export default function BreathingSession({ phenotype, sessionType = "morning", duration = 5, onClose }) {
+  const SESSION_MINUTES = duration;
   const patternKey = getPatternKey(phenotype, sessionType);
   const pattern = PATTERNS[patternKey];
   const phases = pattern.phases;

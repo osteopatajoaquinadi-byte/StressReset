@@ -3,53 +3,47 @@ import { supabase } from "./lib/supabase";
 import Welcome from "./components/Welcome";
 import Assessment from "./components/Assessment";
 import PhenotypeResult from "./components/PhenotypeResult";
-import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
 import BreathingSession from "./components/BreathingSession";
+import BottomNav from "./components/BottomNav";
+import PlanView from "./components/PlanView";
+import BreatheTab from "./components/BreatheTab";
+import PillarsHub from "./components/PillarsHub";
+import ProfileTab from "./components/ProfileTab";
 import { MAIN_BLOCKS, BLOCK_GUT } from "./data/quizQuestions";
 import { calculatePhenotype } from "./utils/scoring";
 
-// ── Stages ─────────────────────────────────────────────────────
-// loading | welcome | quiz | gut_quiz | result | auth | dashboard | breathing
-
+// Stages: loading | welcome | quiz | gut_quiz | result | app | breathing
 export default function App() {
   const [stage, setStage] = useState("loading");
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [result, setResult] = useState(null);
-  const [breathingType, setBreathingType] = useState("morning");
   const [mainAnswers, setMainAnswers] = useState(null);
+  const [activeTab, setActiveTab] = useState("today");
+  const [breathingType, setBreathingType] = useState("morning");
+  const [breathingDuration, setBreathingDuration] = useState(5);
 
   const flatMainQuestions = MAIN_BLOCKS.flatMap((block) =>
     block.questions.map((text, index) => ({
-      blockKey: block.key,
-      blockTitle: block.title,
-      index,
-      text,
+      blockKey: block.key, blockTitle: block.title, index, text,
     }))
   );
   const flatGutQuestions = BLOCK_GUT.questions.map((text, index) => ({
-    blockKey: "GUT",
-    blockTitle: "Profundización intestinal",
-    index,
-    text,
+    blockKey: "GUT", blockTitle: "Profundización intestinal", index, text,
   }));
 
   // ── Init ──────────────────────────────────────────────────────
   useEffect(() => {
-    // Check for saved local profile first (demo mode)
     const localProfile = localStorage.getItem("sr_profile");
     if (localProfile) {
       try {
         setProfile(JSON.parse(localProfile));
-        setStage("dashboard");
+        setStage("app");
         return;
-      } catch (e) {
-        localStorage.removeItem("sr_profile");
-      }
+      } catch (e) { localStorage.removeItem("sr_profile"); }
     }
 
-    // Then check Supabase session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (s) {
         setSession(s);
@@ -63,20 +57,7 @@ export default function App() {
       async (event, s) => {
         if (event === "SIGNED_IN" && s) {
           setSession(s);
-          const pending = localStorage.getItem("sr_pending_result");
-          if (pending) {
-            const r = JSON.parse(pending);
-            setResult(r);
-            const saved = await saveProfileToDb(s.user.id, r);
-            if (saved) {
-              setProfile(saved);
-              localStorage.removeItem("sr_pending_result");
-              localStorage.removeItem("sr_profile");
-              setStage("dashboard");
-            }
-          } else {
-            fetchProfile(s.user.id);
-          }
+          fetchProfile(s.user.id);
         } else if (event === "SIGNED_OUT") {
           setSession(null);
           setProfile(null);
@@ -92,47 +73,19 @@ export default function App() {
 
   async function fetchProfile(userId) {
     const { data } = await supabase
-      .from("sr_profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
+      .from("sr_profiles").select("*").eq("id", userId).maybeSingle();
     if (data) {
       setProfile(data);
-      setStage("dashboard");
+      setStage("app");
     } else {
       setStage("welcome");
     }
   }
 
-  async function saveProfileToDb(userId, r) {
-    const today = new Date().toISOString().split("T")[0];
-    const { data, error } = await supabase
-      .from("sr_profiles")
-      .upsert({
-        id: userId,
-        phenotype: r.dominant,
-        secondary: r.secondary,
-        is_mixed: r.isMixed,
-        percentages: r.percentages,
-        scores: r.scores,
-        gut_subtype: r.gutSubtype,
-        program_start_date: today,
-      })
-      .select()
-      .single();
-    if (error) {
-      console.error("saveProfile error:", error);
-      return null;
-    }
-    return data;
-  }
-
   // ── Quiz flow ─────────────────────────────────────────────────
   function handleMainComplete(flatSelections) {
     const answers = { A: [], B: [], C: [] };
-    flatMainQuestions.forEach((q, i) => {
-      answers[q.blockKey].push(flatSelections[i]);
-    });
+    flatMainQuestions.forEach((q, i) => { answers[q.blockKey].push(flatSelections[i]); });
     setMainAnswers(answers);
     const preliminary = calculatePhenotype(answers);
     if (preliminary.dominant === "C") {
@@ -151,9 +104,7 @@ export default function App() {
   }
 
   // ── Start program ─────────────────────────────────────────────
-  // Va directo al dashboard. Guarda el perfil localmente.
-  // Si hay sesión de Supabase, también guarda en la base de datos.
-  async function handleStartProgram() {
+  function handleStartProgram() {
     const today = new Date().toISOString().split("T")[0];
     const localProfile = {
       phenotype: result.dominant,
@@ -164,53 +115,66 @@ export default function App() {
       gut_subtype: result.gutSubtype,
       program_start_date: today,
     };
-
-    // Guardar localmente (siempre funciona)
     localStorage.setItem("sr_profile", JSON.stringify(localProfile));
     setProfile(localProfile);
-
-    // Si hay sesión, guardar también en Supabase
-    if (session) {
-      await saveProfileToDb(session.user.id, result);
-    }
-
-    setStage("dashboard");
+    setActiveTab("today");
+    setStage("app");
   }
 
-  // ── Sign out / restart ────────────────────────────────────────
   function handleRestart() {
     setMainAnswers(null);
     setResult(null);
     localStorage.removeItem("sr_profile");
     localStorage.removeItem("sr_completions");
+    localStorage.removeItem("sr_breathing_log");
+    setProfile(null);
+    setActiveTab("today");
     setStage("welcome");
   }
 
-  async function handleSignOut() {
-    localStorage.removeItem("sr_profile");
-    localStorage.removeItem("sr_completions");
-    if (session) {
-      await supabase.auth.signOut();
-    }
-    setSession(null);
-    setProfile(null);
+  function handleReevaluate() {
+    setMainAnswers(null);
     setResult(null);
-    setStage("welcome");
+    setStage("quiz");
   }
 
   // ── Breathing ─────────────────────────────────────────────────
-  function openBreathing(type) {
+  function openBreathingFromDashboard(type) {
     setBreathingType(type || "morning");
+    setBreathingDuration(5);
     setStage("breathing");
+  }
+
+  function openBreathingFromTab(patternKey, duration) {
+    setBreathingType(patternKey === "4-8" ? "evening" : patternKey === "4-2-6-2" ? "morning" : "morning");
+    setBreathingDuration(duration);
+    setStage("breathing");
+  }
+
+  function openBreathingFromPillars() {
+    setActiveTab("breathe");
+  }
+
+  function handleBreathingClose() {
+    // Log session
+    try {
+      const log = JSON.parse(localStorage.getItem("sr_breathing_log") || "[]");
+      log.push({
+        date: new Date().toISOString().split("T")[0],
+        minutes: breathingDuration,
+        pattern: breathingType,
+        timestamp: Date.now(),
+      });
+      localStorage.setItem("sr_breathing_log", JSON.stringify(log));
+    } catch (e) {}
+    setStage("app");
   }
 
   // ── Render ────────────────────────────────────────────────────
   if (stage === "loading") {
     return (
       <div className="min-h-screen bg-bone flex items-center justify-center">
-        <div className="font-serif italic text-[18px] text-sage animate-pulse">
-          Stress Reset
-        </div>
+        <div className="font-serif italic text-[18px] text-sage animate-pulse">Stress Reset</div>
       </div>
     );
   }
@@ -221,46 +185,22 @@ export default function App() {
 
   if (stage === "quiz") {
     return (
-      <Assessment
-        key="main"
-        flatQuestions={flatMainQuestions}
-        onComplete={handleMainComplete}
-        title="Autoevaluación"
-        eyebrowPrefix="Paso"
-      />
+      <Assessment key="main" flatQuestions={flatMainQuestions}
+        onComplete={handleMainComplete} title="Autoevaluación" eyebrowPrefix="Paso" />
     );
   }
 
   if (stage === "gut_quiz") {
     return (
-      <Assessment
-        key="gut"
-        flatQuestions={flatGutQuestions}
-        onComplete={handleGutComplete}
-        title="Profundización"
-        eyebrowPrefix="Paso adicional"
-      />
+      <Assessment key="gut" flatQuestions={flatGutQuestions}
+        onComplete={handleGutComplete} title="Profundización" eyebrowPrefix="Paso adicional" />
     );
   }
 
   if (stage === "result" && result) {
     return (
-      <PhenotypeResult
-        result={result}
-        onStartProgram={handleStartProgram}
-        onRestart={handleRestart}
-      />
-    );
-  }
-
-  if (stage === "dashboard" && profile) {
-    return (
-      <Dashboard
-        profile={profile}
-        session={session}
-        onOpenBreathing={openBreathing}
-        onSignOut={handleSignOut}
-      />
+      <PhenotypeResult result={result}
+        onStartProgram={handleStartProgram} onRestart={handleRestart} />
     );
   }
 
@@ -269,8 +209,30 @@ export default function App() {
       <BreathingSession
         phenotype={profile.phenotype}
         sessionType={breathingType}
-        onClose={() => setStage("dashboard")}
+        duration={breathingDuration}
+        onClose={handleBreathingClose}
       />
+    );
+  }
+
+  // ── Main app with tabs ────────────────────────────────────────
+  if (stage === "app" && profile) {
+    return (
+      <div className="min-h-screen bg-bone">
+        {activeTab === "today" && (
+          <Dashboard profile={profile} session={session}
+            onOpenBreathing={openBreathingFromDashboard} onSignOut={handleRestart} />
+        )}
+        {activeTab === "plan" && <PlanView profile={profile} />}
+        {activeTab === "breathe" && <BreatheTab onStartSession={openBreathingFromTab} />}
+        {activeTab === "pillars" && (
+          <PillarsHub profile={profile} onOpenBreathing={openBreathingFromPillars} />
+        )}
+        {activeTab === "profile" && (
+          <ProfileTab profile={profile} onReevaluate={handleReevaluate} onSignOut={handleRestart} />
+        )}
+        <BottomNav active={activeTab} onChange={setActiveTab} />
+      </div>
     );
   }
 
