@@ -3,6 +3,18 @@
 //   A = ECAs / meta-análisis con efecto robusto → ⭐ Esencial (si además required=true)
 //   B = mecanismo claro + estudios positivos → Recomendada
 //   C = plausibilidad + evidencia escasa → Opcional (◦)
+//
+// sortOrder = horario del día para ordenar (formato HHMM):
+//   600  = al despertar
+//   700-730 = mañana temprano (respiración, caminata)
+//   750  = ducha matutina
+//   800-830 = desayuno
+//   900  = mañana media (pausas activas empiezan aquí)
+//   1000 = flexible / distribuido durante el día
+//   1200-1400 = mediodía / almuerzo
+//   1700 = tarde
+//   2000 = cena
+//   2130-2230 = pre-sueño y sueño
 
 const ALL_TASKS = [
   // ── PILAR 1 · Regulación autonómica ─────────────────────────
@@ -11,20 +23,9 @@ const ALL_TASKS = [
     pillar: 1,
     label: "Respiración matutina · 5 min",
     time: "7:00",
+    sortOrder: 700,
     action: "breathing",
     breathingType: "morning",
-    weekFrom: 1,
-    phenotypes: ["A", "B", "C"],
-    evidence: "A",
-    required: true,
-  },
-  {
-    key: "breathing_evening",
-    pillar: 1,
-    label: "Respiración pre-sueño · 5 min",
-    time: "22:30",
-    action: "breathing",
-    breathingType: "evening",
     weekFrom: 1,
     phenotypes: ["A", "B", "C"],
     evidence: "A",
@@ -35,8 +36,22 @@ const ALL_TASKS = [
     pillar: 1,
     label: "Suspiro fisiológico · 5 min",
     time: "cualquier momento",
+    sortOrder: 1000,
     action: "breathing",
     breathingType: "sigh",
+    weekFrom: 1,
+    phenotypes: ["A", "B", "C"],
+    evidence: "A",
+    required: true,
+  },
+  {
+    key: "breathing_evening",
+    pillar: 1,
+    label: "Respiración pre-sueño · 5 min",
+    time: "22:30",
+    sortOrder: 2230,
+    action: "breathing",
+    breathingType: "evening",
     weekFrom: 1,
     phenotypes: ["A", "B", "C"],
     evidence: "A",
@@ -47,6 +62,7 @@ const ALL_TASKS = [
     pillar: 1,
     label: "Manta pesada · 15-20 min antes de dormir",
     time: "22:00",
+    sortOrder: 2200,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B"],
@@ -58,6 +74,7 @@ const ALL_TASKS = [
     pillar: 1,
     label: "Meditación concentrativa · 5-10 min",
     time: "mañana o noche",
+    sortOrder: 830,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
@@ -71,6 +88,7 @@ const ALL_TASKS = [
     pillar: 2,
     label: "Caminata con luz solar · 20 min",
     time: "7:30",
+    sortOrder: 730,
     action: null,
     weekFrom: 1,
     phenotypes: ["A", "B", "C"],
@@ -78,21 +96,11 @@ const ALL_TASKS = [
     required: true,
   },
   {
-    key: "active_breaks",
-    pillar: 2,
-    label: "Pausa activa cada 30 min (3 min)",
-    time: "todo el día",
-    action: null,
-    weekFrom: 2,
-    phenotypes: ["A", "B", "C"],
-    evidence: "A",
-    required: false,
-  },
-  {
     key: "strength_session",
     pillar: 2,
     label: "Sesión de fuerza · 30-40 min",
     time: "mañana o tarde",
+    sortOrder: 1000,
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
@@ -104,10 +112,23 @@ const ALL_TASKS = [
     pillar: 2,
     label: "Movimiento suave · yoga / estiramientos",
     time: "mañana o tarde",
+    sortOrder: 1000,
     action: null,
     weekFrom: 3,
     phenotypes: ["B"],
     evidence: "B",
+    required: false,
+  },
+  {
+    key: "active_breaks",
+    pillar: 2,
+    label: "Pausa activa cada 30 min (3 min)",
+    time: "todo el día",
+    sortOrder: 900,
+    action: null,
+    weekFrom: 2,
+    phenotypes: ["A", "B", "C"],
+    evidence: "A",
     required: false,
   },
 
@@ -116,7 +137,8 @@ const ALL_TASKS = [
     key: "consistent_wake",
     pillar: 3,
     label: "Misma hora de despertar que ayer",
-    time: "mañana",
+    time: "al despertar",
+    sortOrder: 600,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
@@ -128,6 +150,7 @@ const ALL_TASKS = [
     pillar: 3,
     label: "Luz tenue 90 min antes de dormir",
     time: "21:30",
+    sortOrder: 2130,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
@@ -139,6 +162,7 @@ const ALL_TASKS = [
     pillar: 3,
     label: "Sin pantallas brillantes · modo nocturno",
     time: "22:00",
+    sortOrder: 2200,
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "B", "C"],
@@ -150,6 +174,7 @@ const ALL_TASKS = [
     pillar: 3,
     label: "Habitación fresca · 18-20°C al dormir",
     time: "noche",
+    sortOrder: 2245,
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
@@ -159,21 +184,23 @@ const ALL_TASKS = [
 
   // ── PILAR 4 · Nutrición / ayuno ──────────────────────────────
   {
-    key: "eating_window_12",
+    key: "protein_breakfast",
     pillar: 4,
-    label: "Ventana de comida 12:12 · cierra 20:00",
-    time: "20:00",
+    label: "Romper ayuno con proteína + grasa",
+    time: "mañana",
+    sortOrder: 820,
     action: null,
-    weekFrom: 2,
+    weekFrom: 3,
     phenotypes: ["A", "C"],
-    evidence: "A",
-    required: true,
+    evidence: "B",
+    required: false,
   },
   {
     key: "fixed_meals_b",
     pillar: 4,
     label: "3 comidas a horario fijo · no saltear",
     time: "todo el día",
+    sortOrder: 900,
     action: null,
     weekFrom: 2,
     phenotypes: ["B"],
@@ -185,6 +212,7 @@ const ALL_TASKS = [
     pillar: 4,
     label: "Sin azúcar refinada ni ultraprocesados",
     time: "todo el día",
+    sortOrder: 900,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
@@ -192,26 +220,28 @@ const ALL_TASKS = [
     required: true,
   },
   {
-    key: "protein_breakfast",
-    pillar: 4,
-    label: "Romper ayuno con proteína + grasa",
-    time: "mañana",
-    action: null,
-    weekFrom: 3,
-    phenotypes: ["A", "C"],
-    evidence: "B",
-    required: false,
-  },
-  {
     key: "omega3_meal",
     pillar: 4,
     label: "Comida con omega-3 · pescado / nueces",
     time: "almuerzo o cena",
+    sortOrder: 1300,
     action: null,
     weekFrom: 3,
     phenotypes: ["C"],
     evidence: "A",
     required: false,
+  },
+  {
+    key: "eating_window_12",
+    pillar: 4,
+    label: "Ventana de comida 12:12 · cierra 20:00",
+    time: "20:00",
+    sortOrder: 2000,
+    action: null,
+    weekFrom: 2,
+    phenotypes: ["A", "C"],
+    evidence: "A",
+    required: true,
   },
 
   // ── PILAR 5 · Hormesis ────────────────────────────────────────
@@ -219,9 +249,22 @@ const ALL_TASKS = [
     key: "cold_shower",
     pillar: 5,
     label: "Ducha fría final · 30-60 seg",
-    time: "ducha",
+    time: "ducha matutina",
+    sortOrder: 750,
     action: null,
     weekFrom: 3,
+    phenotypes: ["A", "C"],
+    evidence: "B",
+    required: false,
+  },
+  {
+    key: "brief_sprint",
+    pillar: 5,
+    label: "Sprints breves · 4-6 × 15 seg",
+    time: "mañana",
+    sortOrder: 1030,
+    action: null,
+    weekFrom: 4,
     phenotypes: ["A", "C"],
     evidence: "B",
     required: false,
@@ -231,6 +274,7 @@ const ALL_TASKS = [
     pillar: 5,
     label: "Baño caliente prolongado · 20 min",
     time: "tarde",
+    sortOrder: 1700,
     action: null,
     weekFrom: 3,
     phenotypes: ["B"],
@@ -238,21 +282,11 @@ const ALL_TASKS = [
     required: false,
   },
   {
-    key: "brief_sprint",
-    pillar: 5,
-    label: "Sprints breves · 4-6 × 15 seg",
-    time: "mañana",
-    action: null,
-    weekFrom: 4,
-    phenotypes: ["A", "C"],
-    evidence: "B",
-    required: false,
-  },
-  {
     key: "sauna_heat",
     pillar: 5,
     label: "Sauna · 15-20 min a 80-100°C",
     time: "tarde",
+    sortOrder: 1700,
     action: null,
     weekFrom: 4,
     phenotypes: ["A", "B", "C"],
@@ -262,13 +296,14 @@ const ALL_TASKS = [
 ];
 
 /**
- * Devuelve las tareas activas para un día y fenotipo dados.
+ * Devuelve las tareas activas para un día y fenotipo dados,
+ * ordenadas cronológicamente por sortOrder.
  */
 export function getTasksForDay(phenotype, day) {
   const week = Math.ceil(Math.max(1, day) / 7);
-  return ALL_TASKS.filter(
-    (t) => t.phenotypes.includes(phenotype) && t.weekFrom <= week
-  );
+  return ALL_TASKS
+    .filter((t) => t.phenotypes.includes(phenotype) && t.weekFrom <= week)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 /**
