@@ -1,9 +1,11 @@
 // Tareas del plan de 28 días — Stress Reset
-// Fuente: StressReset_Paciente caps 8-12
-// La visibilidad de cada tarea depende de: phenotype y semana del programa
+// Clasificación de evidencia auditada 2025:
+//   A = ECAs / meta-análisis con efecto robusto → ⭐ Esencial (si además required=true)
+//   B = mecanismo claro + estudios positivos → Recomendada
+//   C = plausibilidad + evidencia escasa → Opcional (◦)
 
 const ALL_TASKS = [
-  // ── PILAR 1 · Regulación autonómica / vagal ──────────────────
+  // ── PILAR 1 · Regulación autonómica ─────────────────────────
   {
     key: "breathing_morning",
     pillar: 1,
@@ -13,6 +15,8 @@ const ALL_TASKS = [
     breathingType: "morning",
     weekFrom: 1,
     phenotypes: ["A", "B", "C"],
+    evidence: "A",
+    required: true,
   },
   {
     key: "breathing_evening",
@@ -23,17 +27,9 @@ const ALL_TASKS = [
     breathingType: "evening",
     weekFrom: 1,
     phenotypes: ["A", "B", "C"],
+    evidence: "A",
+    required: true,
   },
-  {
-    key: "vagal_practice",
-    pillar: 1,
-    label: "Práctica vagal · canto / gárgaras / inmersión facial",
-    time: "cualquier momento",
-    action: null,
-    weekFrom: 2,
-    phenotypes: ["A", "B", "C"],
-  },
-
   {
     key: "physiological_sigh",
     pillar: 1,
@@ -43,6 +39,8 @@ const ALL_TASKS = [
     breathingType: "sigh",
     weekFrom: 1,
     phenotypes: ["A", "B", "C"],
+    evidence: "A",
+    required: true,
   },
   {
     key: "weighted_blanket",
@@ -52,18 +50,22 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B"],
+    evidence: "B",
+    required: false,
   },
   {
-    key: "third_eye_meditation",
+    key: "concentrative_meditation",
     pillar: 1,
-    label: "Meditación del tercer ojo · 5-10 min",
+    label: "Meditación concentrativa · 5-10 min",
     time: "mañana o noche",
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
+    evidence: "C",
+    required: false,
   },
 
-  // ── PILAR 2 · Movimiento ──────────────────────────────────────
+  // ── PILAR 2 · Movimiento ─────────────────────────────────────
   {
     key: "morning_walk",
     pillar: 2,
@@ -72,6 +74,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 1,
     phenotypes: ["A", "B", "C"],
+    evidence: "A",
+    required: true,
   },
   {
     key: "active_breaks",
@@ -81,6 +85,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
+    evidence: "A",
+    required: false,
   },
   {
     key: "strength_session",
@@ -90,6 +96,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
+    evidence: "A",
+    required: true,
   },
   {
     key: "restorative_movement",
@@ -99,6 +107,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 3,
     phenotypes: ["B"],
+    evidence: "B",
+    required: false,
   },
 
   // ── PILAR 3 · Ritmos circadianos ─────────────────────────────
@@ -110,6 +120,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
+    evidence: "A",
+    required: true,
   },
   {
     key: "dim_lights",
@@ -119,15 +131,19 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
+    evidence: "A",
+    required: true,
   },
   {
     key: "no_screens",
     pillar: 3,
-    label: "Sin pantallas brillantes · modo nocturno activo",
+    label: "Sin pantallas brillantes · modo nocturno",
     time: "22:00",
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "B", "C"],
+    evidence: "B",
+    required: false,
   },
   {
     key: "cool_room",
@@ -137,6 +153,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
+    evidence: "A",
+    required: false,
   },
 
   // ── PILAR 4 · Nutrición / ayuno ──────────────────────────────
@@ -148,6 +166,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "C"],
+    evidence: "A",
+    required: true,
   },
   {
     key: "fixed_meals_b",
@@ -157,6 +177,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 2,
     phenotypes: ["B"],
+    evidence: "B",
+    required: true,
   },
   {
     key: "no_refined",
@@ -166,6 +188,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
+    evidence: "A",
+    required: true,
   },
   {
     key: "protein_breakfast",
@@ -175,6 +199,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
+    evidence: "B",
+    required: false,
   },
   {
     key: "omega3_meal",
@@ -184,6 +210,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 3,
     phenotypes: ["C"],
+    evidence: "A",
+    required: false,
   },
 
   // ── PILAR 5 · Hormesis ────────────────────────────────────────
@@ -195,6 +223,8 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
+    evidence: "B",
+    required: false,
   },
   {
     key: "heat_session",
@@ -204,15 +234,19 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 3,
     phenotypes: ["B"],
+    evidence: "C",
+    required: false,
   },
   {
     key: "brief_sprint",
     pillar: 5,
-    label: "Sprints breves · 4-6 x 15 seg con descanso",
+    label: "Sprints breves · 4-6 × 15 seg",
     time: "mañana",
     action: null,
     weekFrom: 4,
     phenotypes: ["A", "C"],
+    evidence: "B",
+    required: false,
   },
   {
     key: "sauna_heat",
@@ -222,18 +256,30 @@ const ALL_TASKS = [
     action: null,
     weekFrom: 4,
     phenotypes: ["A", "B", "C"],
+    evidence: "B",
+    required: false,
   },
 ];
 
 /**
  * Devuelve las tareas activas para un día y fenotipo dados.
- * La semana se calcula desde el día del programa (1-28).
  */
 export function getTasksForDay(phenotype, day) {
   const week = Math.ceil(Math.max(1, day) / 7);
   return ALL_TASKS.filter(
     (t) => t.phenotypes.includes(phenotype) && t.weekFrom <= week
   );
+}
+
+/**
+ * Clasificación visual de cada tarea basada en evidencia + required.
+ * Devuelve: 'essential' | 'recommended' | 'optional'
+ */
+export function classifyTask(task) {
+  if (task.required && task.evidence === "A") return "essential";
+  if (task.required && task.evidence === "B") return "essential";
+  if (task.evidence === "C") return "optional";
+  return "recommended";
 }
 
 export const PILLAR_LABELS = {
@@ -250,4 +296,10 @@ export const PILLAR_COLORS = {
   3: "text-good",
   4: "text-gold",
   5: "text-warn",
+};
+
+export const EVIDENCE_LABELS = {
+  A: "Evidencia firme",
+  B: "Evidencia razonable",
+  C: "Evidencia limitada",
 };

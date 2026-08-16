@@ -21,24 +21,24 @@ export const PILLARS_CONTENT = [
       "Baja la frecuencia cardíaca y la presión arterial",
       "Mejora la variabilidad cardíaca (HRV) en semanas",
       "Reduce la latencia de sueño (te duermes más rápido)",
-      "Suspiro fisiológico: reset simpático más rápido documentado",
+      "Suspiro fisiológico: reset simpático más rápido documentado (Balban 2023)",
       "Manta pesada: estimulación por presión profunda → activación parasimpática",
-      "Meditación del tercer ojo: reducción de ruido cortical prefrontal",
+      "Meditación concentrativa: reduce ruido cortical y rumiación",
     ],
     byPhenotype: {
       A: "Respiración 5-5 diaria + exhalación larga 4-8 antes de dormir + " +
          "suspiro fisiológico como rescate en momentos de ansiedad. Manta pesada " +
          "antes de dormir para facilitar la transición al sueño. Meditación " +
-         "del tercer ojo como práctica de quietud. Tu sistema está en activación " +
+         "concentrativa como práctica de quietud. Tu sistema está en activación " +
          "permanente — el foco es frenar desde múltiples puertas.",
       B: "Respiración 4-2-6-2 (activante, no calmante). Manta pesada para " +
          "generar sensación de seguridad y contención, que facilita la " +
-         "reactivación vagal ventral. Meditación del tercer ojo como ancla " +
+         "reactivación vagal ventral. Meditación concentrativa como ancla " +
          "de presencia. Tu sistema está colapsado — necesitas despertar, " +
          "no calmarlo más.",
       C: "Respiración 5-5 como base + suspiro fisiológico en momentos de " +
-         "dolor o niebla mental. Meditación del tercer ojo para reducir la " +
-         "reactividad del sistema limbico ante estímulos inflamatorios.",
+         "dolor o niebla mental. Meditación concentrativa para reducir la " +
+         "reactividad del sistema límbico ante estímulos inflamatorios.",
     },
     action: { type: "breathing", label: "Iniciar sesión de respiración" },
     tools: [
@@ -59,13 +59,30 @@ export const PILLARS_CONTENT = [
         tip: "No necesitas dormir con ella toda la noche — 15-20 min previos al sueño es suficiente.",
       },
       {
-        name: "Meditación del tercer ojo",
-        protocol: "Sentado, ojos cerrados, dirige la atención al punto entre las cejas (ajna). " +
-                  "Sin forzar los ojos — solo lleva la atención ahí suavemente. Mantén 5-10 minutos. " +
-                  "Este foco atencional sostenido reduce la actividad del default mode network " +
-                  "(la red de rumiación) y aumenta la coherencia prefrontal. Es una forma de " +
-                  "meditación concentrativa con menor barrera de entrada que el mindfulness abierto.",
-        tip: "Combínala con la respiración 5-5 para un efecto dual: regulación autonómica + cortical.",
+        name: "Meditación concentrativa",
+        protocol: "Sentado, ojos cerrados, dirige la atención suavemente a un punto único " +
+                  "— puede ser la respiración, un punto entre las cejas, o una palabra corta. " +
+                  "Sin forzar. Cuando la mente se distrae (lo hará), vuelve al punto sin juzgar. " +
+                  "5-10 minutos. Este foco atencional sostenido reduce la actividad del " +
+                  "default mode network (la red de rumiación) y mejora la coherencia prefrontal. " +
+                  "Menor barrera de entrada que el mindfulness abierto.",
+        tip: "La evidencia directa de este subtipo específico es limitada; el efecto general " +
+             "de meditación concentrativa está bien documentado. Empieza con 5 min y sube gradual.",
+      },
+      {
+        name: "Canto, tarareo o gárgaras (opcional)",
+        protocol: "Vibración de la laringe estimula fibras vagales por su inervación directa. " +
+                  "Tarareo continuo 5 min, canto libre, o gárgaras vigorosas 30-60 seg. " +
+                  "El mecanismo es plausible pero los ensayos clínicos son escasos.",
+        tip: "Es una herramienta útil como complemento — no la priorices sobre la respiración diaria. " +
+             "Bien tolerada, sin riesgo, sin evidencia dura de efecto clínico independiente.",
+      },
+      {
+        name: "Inmersión facial fría (opcional)",
+        protocol: "Sumerge la cara en un lavabo con agua fría (10-15°C) durante 15-30 segundos. " +
+                  "Activa el reflejo de inmersión mamífero: bradicardia inmediata y activación vagal aguda. " +
+                  "Útil como rescate en momentos de ansiedad aguda.",
+        tip: "El mecanismo está bien documentado. Contraindicado si tienes arritmias no controladas.",
       },
     ],
   },

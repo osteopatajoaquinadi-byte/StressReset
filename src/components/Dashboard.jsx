@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { getTasksForDay, PILLAR_LABELS, PILLAR_COLORS } from "../data/tasks";
+import { getTasksForDay, PILLAR_LABELS, PILLAR_COLORS, classifyTask } from "../data/tasks";
 import { PHENOTYPES } from "../data/phenotypes";
 
 function daysBetween(startIso, todayIso) {
@@ -167,65 +167,111 @@ export default function Dashboard({ profile, session, onOpenBreathing, onSignOut
             Cargando...
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5 mb-5">
-            {tasks.map((task) => {
-              const isDone = completions.has(task.key);
-              return (
-                <div
-                  key={task.key}
-                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-colors ${
-                    isDone
-                      ? "bg-sage-soft border-transparent"
-                      : "bg-paper border-line"
-                  }`}
-                >
-                  <button
-                    onClick={() => toggleTask(task.key)}
-                    className={`w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex-shrink-0 flex items-center justify-center transition-colors ${
-                      isDone
-                        ? "border-chloro bg-chloro"
-                        : "border-line hover:border-sage"
-                    }`}
-                  >
-                    {isDone && (
-                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8"
-                          strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </button>
+          <>
+            {["essential", "recommended", "optional"].map((tier) => {
+              const tierTasks = tasks.filter((t) => classifyTask(t) === tier);
+              if (tierTasks.length === 0) return null;
 
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-[13px] leading-snug ${
-                      isDone ? "line-through text-mute" : "text-ink"
-                    }`}>
-                      {task.label}
-                    </div>
-                    <div className={`font-mono text-[9.5px] uppercase tracking-wide mt-0.5 ${
-                      PILLAR_COLORS[task.pillar] || "text-mute"
-                    }`}>
-                      {PILLAR_LABELS[task.pillar]}
-                    </div>
+              const tierMeta = {
+                essential: {
+                  label: "Esenciales",
+                  desc: "Base del programa · evidencia firme",
+                  color: "text-chloro",
+                  icon: "★",
+                },
+                recommended: {
+                  label: "Recomendadas",
+                  desc: "Suman valor · evidencia razonable",
+                  color: "text-sage",
+                  icon: "·",
+                },
+                optional: {
+                  label: "Opcionales",
+                  desc: "Si tienes tiempo · evidencia limitada",
+                  color: "text-mute",
+                  icon: "◦",
+                },
+              }[tier];
+
+              return (
+                <div key={tier} className="mb-6">
+                  <div className="flex items-baseline gap-2 mb-2.5">
+                    <span className={`font-mono text-[10px] font-semibold ${tierMeta.color}`}>
+                      {tierMeta.icon}
+                    </span>
+                    <span className={`font-mono text-[9.5px] uppercase tracking-widest font-semibold ${tierMeta.color}`}>
+                      {tierMeta.label}
+                    </span>
+                    <span className="font-mono text-[9px] text-mute">
+                      {tierMeta.desc}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {task.action === "breathing" && !isDone && (
-                      <button
-                        onClick={() => onOpenBreathing(task.breathingType || "morning")}
-                        className="w-7 h-7 rounded-full border border-chloro/35 bg-sage-soft flex items-center justify-center hover:bg-chloro hover:border-chloro transition-colors group"
-                      >
-                        <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
-                          <path d="M1 1.5l6 3-6 3V1.5z" fill="currentColor"
-                            className="text-chloro group-hover:text-paper transition-colors" />
-                        </svg>
-                      </button>
-                    )}
-                    <span className="font-mono text-[10px] text-mute">{task.time}</span>
+                  <div className="flex flex-col gap-2.5">
+                    {tierTasks.map((task) => {
+                      const isDone = completions.has(task.key);
+                      return (
+                        <div
+                          key={task.key}
+                          className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-colors ${
+                            isDone
+                              ? "bg-sage-soft border-transparent"
+                              : tier === "essential"
+                              ? "bg-paper border-chloro/25"
+                              : "bg-paper border-line"
+                          }`}
+                        >
+                          <button
+                            onClick={() => toggleTask(task.key)}
+                            className={`w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex-shrink-0 flex items-center justify-center transition-colors ${
+                              isDone
+                                ? "border-chloro bg-chloro"
+                                : "border-line hover:border-sage"
+                            }`}
+                          >
+                            {isDone && (
+                              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8"
+                                  strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </button>
+
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-[13px] leading-snug ${
+                              isDone ? "line-through text-mute" : "text-ink"
+                            }`}>
+                              {task.label}
+                            </div>
+                            <div className={`font-mono text-[9.5px] uppercase tracking-wide mt-0.5 ${
+                              PILLAR_COLORS[task.pillar] || "text-mute"
+                            }`}>
+                              {PILLAR_LABELS[task.pillar]}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {task.action === "breathing" && !isDone && (
+                              <button
+                                onClick={() => onOpenBreathing(task.breathingType || "morning")}
+                                className="w-7 h-7 rounded-full border border-chloro/35 bg-sage-soft flex items-center justify-center hover:bg-chloro hover:border-chloro transition-colors group"
+                              >
+                                <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
+                                  <path d="M1 1.5l6 3-6 3V1.5z" fill="currentColor"
+                                    className="text-chloro group-hover:text-paper transition-colors" />
+                                </svg>
+                              </button>
+                            )}
+                            <span className="font-mono text-[10px] text-mute">{task.time}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
-          </div>
+          </>
         )}
 
         {/* All done */}
