@@ -146,7 +146,7 @@ export default function App() {
   }
 
   function openBreathingFromTab(patternKey, duration) {
-    setBreathingType(patternKey === "4-8" ? "evening" : patternKey === "4-2-6-2" ? "morning" : "morning");
+    setBreathingType(patternKey);
     setBreathingDuration(duration);
     setStage("breathing");
   }
