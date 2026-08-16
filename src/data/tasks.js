@@ -4,17 +4,10 @@
 //   B = mecanismo claro + estudios positivos → Recomendada
 //   C = plausibilidad + evidencia escasa → Opcional (◦)
 //
-// sortOrder = horario del día para ordenar (formato HHMM):
-//   600  = al despertar
-//   700-730 = mañana temprano (respiración, caminata)
-//   750  = ducha matutina
-//   800-830 = desayuno
-//   900  = mañana media (pausas activas empiezan aquí)
-//   1000 = flexible / distribuido durante el día
-//   1200-1400 = mediodía / almuerzo
-//   1700 = tarde
-//   2000 = cena
-//   2130-2230 = pre-sueño y sueño
+// sortOrder = orden secuencial del día (1 = primero, hacia arriba = más tarde)
+// Solo la caminata con luz solar tiene un momento específico ("primera hora del despertar")
+// porque su efecto circadiano depende del timing.
+// El resto usa etiquetas de momento del día — el paciente elige el minuto exacto.
 
 const ALL_TASKS = [
   // ── PILAR 1 · Regulación autonómica ─────────────────────────
@@ -22,8 +15,8 @@ const ALL_TASKS = [
     key: "breathing_morning",
     pillar: 1,
     label: "Respiración matutina · 5 min",
-    time: "7:00",
-    sortOrder: 700,
+    time: "al despertar",
+    sortOrder: 2,
     action: "breathing",
     breathingType: "morning",
     weekFrom: 1,
@@ -35,8 +28,8 @@ const ALL_TASKS = [
     key: "physiological_sigh",
     pillar: 1,
     label: "Suspiro fisiológico · 5 min",
-    time: "cualquier momento",
-    sortOrder: 1000,
+    time: "cuando lo necesites",
+    sortOrder: 10,
     action: "breathing",
     breathingType: "sigh",
     weekFrom: 1,
@@ -48,8 +41,8 @@ const ALL_TASKS = [
     key: "breathing_evening",
     pillar: 1,
     label: "Respiración pre-sueño · 5 min",
-    time: "22:30",
-    sortOrder: 2230,
+    time: "antes de dormir",
+    sortOrder: 30,
     action: "breathing",
     breathingType: "evening",
     weekFrom: 1,
@@ -61,8 +54,8 @@ const ALL_TASKS = [
     key: "weighted_blanket",
     pillar: 1,
     label: "Manta pesada · 15-20 min antes de dormir",
-    time: "22:00",
-    sortOrder: 2200,
+    time: "antes de dormir",
+    sortOrder: 31,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B"],
@@ -74,7 +67,7 @@ const ALL_TASKS = [
     pillar: 1,
     label: "Meditación concentrativa · 5-10 min",
     time: "mañana o noche",
-    sortOrder: 830,
+    sortOrder: 6,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
@@ -87,8 +80,8 @@ const ALL_TASKS = [
     key: "morning_walk",
     pillar: 2,
     label: "Caminata con luz solar · 20 min",
-    time: "7:30",
-    sortOrder: 730,
+    time: "primera hora del despertar",
+    sortOrder: 3,
     action: null,
     weekFrom: 1,
     phenotypes: ["A", "B", "C"],
@@ -100,7 +93,7 @@ const ALL_TASKS = [
     pillar: 2,
     label: "Sesión de fuerza · 30-40 min",
     time: "mañana o tarde",
-    sortOrder: 1000,
+    sortOrder: 12,
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
@@ -112,7 +105,7 @@ const ALL_TASKS = [
     pillar: 2,
     label: "Movimiento suave · yoga / estiramientos",
     time: "mañana o tarde",
-    sortOrder: 1000,
+    sortOrder: 12,
     action: null,
     weekFrom: 3,
     phenotypes: ["B"],
@@ -123,8 +116,8 @@ const ALL_TASKS = [
     key: "active_breaks",
     pillar: 2,
     label: "Pausa activa cada 30 min (3 min)",
-    time: "todo el día",
-    sortOrder: 900,
+    time: "durante el día",
+    sortOrder: 11,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
@@ -138,7 +131,7 @@ const ALL_TASKS = [
     pillar: 3,
     label: "Misma hora de despertar que ayer",
     time: "al despertar",
-    sortOrder: 600,
+    sortOrder: 1,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
@@ -148,9 +141,9 @@ const ALL_TASKS = [
   {
     key: "dim_lights",
     pillar: 3,
-    label: "Luz tenue 90 min antes de dormir",
-    time: "21:30",
-    sortOrder: 2130,
+    label: "Luz tenue · 90 min antes de dormir",
+    time: "antes de dormir",
+    sortOrder: 28,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
@@ -161,8 +154,8 @@ const ALL_TASKS = [
     key: "no_screens",
     pillar: 3,
     label: "Sin pantallas brillantes · modo nocturno",
-    time: "22:00",
-    sortOrder: 2200,
+    time: "antes de dormir",
+    sortOrder: 29,
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "B", "C"],
@@ -173,8 +166,8 @@ const ALL_TASKS = [
     key: "cool_room",
     pillar: 3,
     label: "Habitación fresca · 18-20°C al dormir",
-    time: "noche",
-    sortOrder: 2245,
+    time: "al dormir",
+    sortOrder: 32,
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
@@ -187,8 +180,8 @@ const ALL_TASKS = [
     key: "protein_breakfast",
     pillar: 4,
     label: "Romper ayuno con proteína + grasa",
-    time: "mañana",
-    sortOrder: 820,
+    time: "primera comida del día",
+    sortOrder: 7,
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
@@ -199,8 +192,8 @@ const ALL_TASKS = [
     key: "fixed_meals_b",
     pillar: 4,
     label: "3 comidas a horario fijo · no saltear",
-    time: "todo el día",
-    sortOrder: 900,
+    time: "con las comidas",
+    sortOrder: 11,
     action: null,
     weekFrom: 2,
     phenotypes: ["B"],
@@ -211,8 +204,8 @@ const ALL_TASKS = [
     key: "no_refined",
     pillar: 4,
     label: "Sin azúcar refinada ni ultraprocesados",
-    time: "todo el día",
-    sortOrder: 900,
+    time: "durante el día",
+    sortOrder: 11,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "B", "C"],
@@ -224,7 +217,7 @@ const ALL_TASKS = [
     pillar: 4,
     label: "Comida con omega-3 · pescado / nueces",
     time: "almuerzo o cena",
-    sortOrder: 1300,
+    sortOrder: 15,
     action: null,
     weekFrom: 3,
     phenotypes: ["C"],
@@ -234,9 +227,9 @@ const ALL_TASKS = [
   {
     key: "eating_window_12",
     pillar: 4,
-    label: "Ventana de comida 12:12 · cierra 20:00",
-    time: "20:00",
-    sortOrder: 2000,
+    label: "Ventana de comida 12:12 · última ingesta 3h antes de dormir",
+    time: "cierre de la ventana",
+    sortOrder: 25,
     action: null,
     weekFrom: 2,
     phenotypes: ["A", "C"],
@@ -249,8 +242,8 @@ const ALL_TASKS = [
     key: "cold_shower",
     pillar: 5,
     label: "Ducha fría final · 30-60 seg",
-    time: "ducha matutina",
-    sortOrder: 750,
+    time: "en tu ducha habitual",
+    sortOrder: 5,
     action: null,
     weekFrom: 3,
     phenotypes: ["A", "C"],
@@ -262,7 +255,7 @@ const ALL_TASKS = [
     pillar: 5,
     label: "Sprints breves · 4-6 × 15 seg",
     time: "mañana",
-    sortOrder: 1030,
+    sortOrder: 13,
     action: null,
     weekFrom: 4,
     phenotypes: ["A", "C"],
@@ -274,7 +267,7 @@ const ALL_TASKS = [
     pillar: 5,
     label: "Baño caliente prolongado · 20 min",
     time: "tarde",
-    sortOrder: 1700,
+    sortOrder: 18,
     action: null,
     weekFrom: 3,
     phenotypes: ["B"],
@@ -286,7 +279,7 @@ const ALL_TASKS = [
     pillar: 5,
     label: "Sauna · 15-20 min a 80-100°C",
     time: "tarde",
-    sortOrder: 1700,
+    sortOrder: 18,
     action: null,
     weekFrom: 4,
     phenotypes: ["A", "B", "C"],
@@ -297,7 +290,7 @@ const ALL_TASKS = [
 
 /**
  * Devuelve las tareas activas para un día y fenotipo dados,
- * ordenadas cronológicamente por sortOrder.
+ * ordenadas secuencialmente por sortOrder (1 = primero del día).
  */
 export function getTasksForDay(phenotype, day) {
   const week = Math.ceil(Math.max(1, day) / 7);
