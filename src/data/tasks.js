@@ -34,6 +34,35 @@ const ALL_TASKS = [
     phenotypes: ["A", "B", "C"],
   },
 
+  {
+    key: "physiological_sigh",
+    pillar: 1,
+    label: "Suspiro fisiológico · 5 min",
+    time: "cualquier momento",
+    action: "breathing",
+    breathingType: "sigh",
+    weekFrom: 1,
+    phenotypes: ["A", "B", "C"],
+  },
+  {
+    key: "weighted_blanket",
+    pillar: 1,
+    label: "Manta pesada · 15-20 min antes de dormir",
+    time: "22:00",
+    action: null,
+    weekFrom: 2,
+    phenotypes: ["A", "B"],
+  },
+  {
+    key: "third_eye_meditation",
+    pillar: 1,
+    label: "Meditación del tercer ojo · 5-10 min",
+    time: "mañana o noche",
+    action: null,
+    weekFrom: 2,
+    phenotypes: ["A", "B", "C"],
+  },
+
   // ── PILAR 2 · Movimiento ──────────────────────────────────────
   {
     key: "morning_walk",

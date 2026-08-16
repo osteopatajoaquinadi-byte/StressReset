@@ -173,8 +173,14 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────────
   if (stage === "loading") {
     return (
-      <div className="min-h-screen bg-bone flex items-center justify-center">
-        <div className="font-serif italic text-[18px] text-sage animate-pulse">Stress Reset</div>
+      <div className="min-h-screen bg-bone flex flex-col items-center justify-center gap-3">
+        <div className="font-serif text-chloro font-medium text-[20px] flex items-center gap-2.5 animate-pulse">
+          <span className="inline-block w-2.5 h-2.5 bg-chloro rotate-45 rounded-[1px]" />
+          Stress Reset
+        </div>
+        <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-sage">
+          Regulación del estrés basada en ciencia
+        </div>
       </div>
     );
   }

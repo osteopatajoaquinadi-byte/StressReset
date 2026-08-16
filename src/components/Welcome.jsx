@@ -1,11 +1,10 @@
+import { BrandMark, BrandFooter } from "./Brand";
+
 export default function Welcome({ onStart }) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-paper to-sage-soft flex flex-col">
       <div className="flex-1 flex flex-col max-w-md mx-auto w-full px-6 py-10 sm:py-16">
-        <div className="font-serif text-chloro text-base font-medium mb-auto flex items-center gap-2">
-          <span className="inline-block w-2 h-2 bg-chloro rotate-45" />
-          Stress Reset
-        </div>
+        <BrandMark size="md" className="mb-auto" />
 
         <div className="flex-1 flex flex-col justify-center py-10">
           <p className="font-mono text-[11px] uppercase tracking-widest text-sage mb-5">
@@ -45,9 +44,7 @@ export default function Welcome({ onStart }) {
         >
           Comenzar evaluación
         </button>
-        <p className="font-mono text-[10px] uppercase tracking-widest text-mute text-center mt-4">
-          Joaquín Adi · Clínica Sakros
-        </p>
+        <BrandFooter className="mt-4" />
       </div>
     </div>
   );

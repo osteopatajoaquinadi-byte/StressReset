@@ -22,6 +22,13 @@ const PATTERNS = [
     detail: "Inhala 4, sostén 2, exhala 6, sostén 2. Activa la rama vagal ventral — la de conexión social y presencia. No es calma: es despertar.",
     for: "Fenotipo B · por la mañana",
   },
+  {
+    key: "sigh",
+    name: "Suspiro",
+    desc: "Suspiro fisiológico",
+    detail: "Doble inhalación por nariz (inhala — pausa — inhala un poco más) y exhala largo y completo por la boca. El mecanismo más rápido documentado para bajar la activación simpática en tiempo real. Reinflate los alvéolos colapsados y activa el vago en segundos.",
+    for: "Todos los fenotipos · reset rápido · ansiedad aguda",
+  },
 ];
 
 const DURATIONS = [3, 5, 10];

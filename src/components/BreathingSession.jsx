@@ -29,9 +29,21 @@ const PATTERNS = {
       { label: "Sostén", seconds: 2, scale: 0.86 },
     ],
   },
+  "sigh": {
+    name: "Suspiro",
+    desc: "Suspiro fisiológico · reset rápido",
+    phases: [
+      { label: "Inhala", seconds: 3, scale: 1.06 },
+      { label: "Pausa", seconds: 1, scale: 1.08 },
+      { label: "Inhala más", seconds: 2, scale: 1.14 },
+      { label: "Suelta\npor boca", seconds: 6, scale: 0.84 },
+    ],
+  },
 };
 
 function getPatternKey(phenotype, sessionType) {
+  // Si se pasa un patrón directo que existe, usarlo
+  if (PATTERNS[sessionType]) return sessionType;
   if (phenotype === "A" && sessionType === "evening") return "4-8";
   if (phenotype === "B") return "4-2-6-2";
   return "5-5";

@@ -21,16 +21,53 @@ export const PILLARS_CONTENT = [
       "Baja la frecuencia cardíaca y la presión arterial",
       "Mejora la variabilidad cardíaca (HRV) en semanas",
       "Reduce la latencia de sueño (te duermes más rápido)",
+      "Suspiro fisiológico: reset simpático más rápido documentado",
+      "Manta pesada: estimulación por presión profunda → activación parasimpática",
+      "Meditación del tercer ojo: reducción de ruido cortical prefrontal",
     ],
     byPhenotype: {
-      A: "Respiración 5-5 diaria + exhalación larga 4-8 antes de dormir. " +
-         "Tu sistema está en activación permanente — el foco es frenar.",
-      B: "Respiración 4-2-6-2 (activante, no calmante). Tu sistema está " +
-         "colapsado — necesitas despertar el vago ventral, no calmarlo más.",
-      C: "Respiración 5-5 como base. Combinala con inmersión facial fría " +
-         "y caminata sin teléfono para máximo efecto antiinflamatorio.",
+      A: "Respiración 5-5 diaria + exhalación larga 4-8 antes de dormir + " +
+         "suspiro fisiológico como rescate en momentos de ansiedad. Manta pesada " +
+         "antes de dormir para facilitar la transición al sueño. Meditación " +
+         "del tercer ojo como práctica de quietud. Tu sistema está en activación " +
+         "permanente — el foco es frenar desde múltiples puertas.",
+      B: "Respiración 4-2-6-2 (activante, no calmante). Manta pesada para " +
+         "generar sensación de seguridad y contención, que facilita la " +
+         "reactivación vagal ventral. Meditación del tercer ojo como ancla " +
+         "de presencia. Tu sistema está colapsado — necesitas despertar, " +
+         "no calmarlo más.",
+      C: "Respiración 5-5 como base + suspiro fisiológico en momentos de " +
+         "dolor o niebla mental. Meditación del tercer ojo para reducir la " +
+         "reactividad del sistema limbico ante estímulos inflamatorios.",
     },
     action: { type: "breathing", label: "Iniciar sesión de respiración" },
+    tools: [
+      {
+        name: "Suspiro fisiológico",
+        protocol: "Doble inhalación por nariz (inhala 3s → pausa 1s → inhala un poco más 2s) " +
+                  "y exhala largo y completo por la boca (6s). 5 minutos de ciclos continuos. " +
+                  "Es el mecanismo más rápido documentado para bajar la activación simpática — " +
+                  "reinflate los alvéolos colapsados y activa el barorreflejo vagal en segundos.",
+        tip: "Úsalo como rescate en momentos de ansiedad aguda o como sesión formal de 5 min.",
+      },
+      {
+        name: "Manta pesada",
+        protocol: "Manta de 5-7 kg (aprox. 10% de tu peso corporal). Úsala 15-20 minutos " +
+                  "antes de dormir o durante momentos de descanso. La presión profunda activa " +
+                  "mecanorreceptores cutáneos que estimulan el sistema nervioso parasimpático " +
+                  "y reducen cortisol. Evidencia consistente en ansiedad y latencia de sueño.",
+        tip: "No necesitas dormir con ella toda la noche — 15-20 min previos al sueño es suficiente.",
+      },
+      {
+        name: "Meditación del tercer ojo",
+        protocol: "Sentado, ojos cerrados, dirige la atención al punto entre las cejas (ajna). " +
+                  "Sin forzar los ojos — solo lleva la atención ahí suavemente. Mantén 5-10 minutos. " +
+                  "Este foco atencional sostenido reduce la actividad del default mode network " +
+                  "(la red de rumiación) y aumenta la coherencia prefrontal. Es una forma de " +
+                  "meditación concentrativa con menor barrera de entrada que el mindfulness abierto.",
+        tip: "Combínala con la respiración 5-5 para un efecto dual: regulación autonómica + cortical.",
+      },
+    ],
   },
   {
     id: 2,
