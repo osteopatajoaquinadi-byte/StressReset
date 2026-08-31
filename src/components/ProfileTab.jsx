@@ -1,6 +1,72 @@
 import { PHENOTYPES } from "../data/phenotypes";
+import InstallPWA from "./InstallPWA";
 
-export default function ProfileTab({ profile, onReevaluate, onSignOut }) {
+function formatDate(d) {
+  if (!d) return null;
+  const date = d instanceof Date ? d : new Date(d);
+  return date.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function AccessBadge({ status, expiresAt }) {
+  if (!status || status === "loading") return null;
+
+  const configs = {
+    paid: {
+      label: "Acceso completo",
+      desc: expiresAt ? `Vigente hasta ${formatDate(expiresAt)}` : "Sin vencimiento",
+      color: "text-chloro",
+      bg: "bg-sage-soft border-chloro/25",
+      icon: "★",
+    },
+    trial: {
+      label: "Acceso de cortesía",
+      desc: expiresAt ? `Vigente hasta ${formatDate(expiresAt)}` : "Vigente",
+      color: "text-gold",
+      bg: "bg-gold-soft border-gold/25",
+      icon: "◆",
+    },
+    free: {
+      label: "Acceso limitado",
+      desc: "Sin sesión iniciada — tus datos viven solo en este dispositivo.",
+      color: "text-mute",
+      bg: "bg-paper border-line",
+      icon: "○",
+    },
+    expired: {
+      label: "Acceso expirado",
+      desc: expiresAt ? `Venció el ${formatDate(expiresAt)}` : "Tu acceso expiró.",
+      color: "text-warn",
+      bg: "bg-paper border-warn/30",
+      icon: "!",
+    },
+    revoked: {
+      label: "Acceso revocado",
+      desc: "Contacta a hola@sakros.cl si crees que es un error.",
+      color: "text-warn",
+      bg: "bg-paper border-warn/30",
+      icon: "!",
+    },
+  };
+  const c = configs[status] || configs.free;
+
+  return (
+    <div className={`${c.bg} border rounded-xl p-4 mb-4`}>
+      <div className="flex items-start gap-3">
+        <div className={`w-8 h-8 rounded-full bg-paper flex items-center justify-center flex-shrink-0 ${c.color} font-mono text-[15px] font-bold`}>
+          {c.icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className={`font-mono text-[9.5px] uppercase tracking-widest font-semibold mb-1 ${c.color}`}>
+            {c.label}
+          </div>
+          <div className="text-[12px] text-ink-soft leading-snug">{c.desc}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ProfileTab({ profile, session, accessStatus, onReevaluate, onSignOut }) {
   const phenotype = PHENOTYPES[profile.phenotype];
   const secondary = profile.secondary ? PHENOTYPES[profile.secondary] : null;
   const pct = profile.percentages || { A: 33, B: 33, C: 34 };
@@ -83,6 +149,14 @@ export default function ProfileTab({ profile, onReevaluate, onSignOut }) {
         </ul>
       </div>
 
+      {/* Access status */}
+      <AccessBadge status={accessStatus} expiresAt={
+        profile?.access_expires_at ? new Date(profile.access_expires_at) : null
+      } />
+
+      {/* Install PWA prompt */}
+      <InstallPWA />
+
       {/* Actions */}
       <button
         onClick={onReevaluate}
@@ -94,7 +168,7 @@ export default function ProfileTab({ profile, onReevaluate, onSignOut }) {
         onClick={onSignOut}
         className="w-full text-[13px] text-mute border border-line rounded-xl py-3 hover:border-line transition-colors"
       >
-        Reiniciar programa
+        {session ? "Cerrar sesión" : "Reiniciar programa"}
       </button>
     </div>
   );

@@ -3,17 +3,22 @@ import { supabase } from "./lib/supabase";
 import Welcome from "./components/Welcome";
 import Assessment from "./components/Assessment";
 import PhenotypeResult from "./components/PhenotypeResult";
+import Auth from "./components/Auth";
+import AccessGate from "./components/AccessGate";
 import Dashboard from "./components/Dashboard";
 import BreathingSession from "./components/BreathingSession";
 import BottomNav from "./components/BottomNav";
+import UpdatePrompt from "./components/UpdatePrompt";
 import PlanView from "./components/PlanView";
 import BreatheTab from "./components/BreatheTab";
 import PillarsHub from "./components/PillarsHub";
 import ProfileTab from "./components/ProfileTab";
 import { MAIN_BLOCKS, BLOCK_GUT } from "./data/quizQuestions";
 import { calculatePhenotype } from "./utils/scoring";
+import { useAccess } from "./hooks/useAccess";
 
-// Stages: loading | welcome | quiz | gut_quiz | result | app | breathing
+// Stages:
+//   loading | welcome | quiz | gut_quiz | result | gate | auth | app | breathing
 export default function App() {
   const [stage, setStage] = useState("loading");
   const [session, setSession] = useState(null);
@@ -23,6 +28,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("today");
   const [breathingType, setBreathingType] = useState("morning");
   const [breathingDuration, setBreathingDuration] = useState(5);
+
+  const { status: accessStatus, recheck: recheckAccess } = useAccess(session);
 
   const flatMainQuestions = MAIN_BLOCKS.flatMap((block) =>
     block.questions.map((text, index) => ({
@@ -35,20 +42,21 @@ export default function App() {
 
   // ── Init ──────────────────────────────────────────────────────
   useEffect(() => {
-    const localProfile = localStorage.getItem("sr_profile");
-    if (localProfile) {
-      try {
-        setProfile(JSON.parse(localProfile));
-        setStage("app");
-        return;
-      } catch (e) { localStorage.removeItem("sr_profile"); }
-    }
-
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (s) {
         setSession(s);
-        fetchProfile(s.user.id);
+        fetchProfileFromDb(s.user.id);
       } else {
+        // No hay sesión: revisamos si hay perfil local (usuario freemium sin cuenta)
+        const localProfile = localStorage.getItem("sr_profile");
+        if (localProfile) {
+          try {
+            setProfile(JSON.parse(localProfile));
+            // Sin sesión y con perfil local → puede seguir a "app" pero será freemium
+            setStage("app");
+            return;
+          } catch { localStorage.removeItem("sr_profile"); }
+        }
         setStage("welcome");
       }
     });
@@ -57,7 +65,8 @@ export default function App() {
       async (event, s) => {
         if (event === "SIGNED_IN" && s) {
           setSession(s);
-          fetchProfile(s.user.id);
+          await fetchProfileFromDb(s.user.id);
+          await recheckAccess();
         } else if (event === "SIGNED_OUT") {
           setSession(null);
           setProfile(null);
@@ -71,15 +80,36 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function fetchProfile(userId) {
+  async function fetchProfileFromDb(userId) {
     const { data } = await supabase
       .from("sr_profiles").select("*").eq("id", userId).maybeSingle();
-    if (data) {
+    if (data && data.phenotype) {
       setProfile(data);
       setStage("app");
     } else {
+      // Hay cuenta pero aún no completó el quiz
       setStage("welcome");
     }
+  }
+
+  async function saveProfileToDb(userId, r) {
+    const today = new Date().toISOString().split("T")[0];
+    const { data } = await supabase
+      .from("sr_profiles")
+      .upsert({
+        id: userId,
+        email: session?.user?.email,
+        phenotype: r.dominant,
+        secondary: r.secondary,
+        is_mixed: r.isMixed,
+        percentages: r.percentages,
+        scores: r.scores,
+        gut_subtype: r.gutSubtype,
+        program_start_date: today,
+      })
+      .select()
+      .single();
+    return data;
   }
 
   // ── Quiz flow ─────────────────────────────────────────────────
@@ -103,8 +133,10 @@ export default function App() {
     setStage("result");
   }
 
-  // ── Start program ─────────────────────────────────────────────
-  function handleStartProgram() {
+  // ── Start program: usuario quiere entrar al plan ─────────────
+  // Decisión clave: si tiene acceso pagado, entra directo.
+  // Si no, va al gate comercial.
+  async function handleStartProgram() {
     const today = new Date().toISOString().split("T")[0];
     const localProfile = {
       phenotype: result.dominant,
@@ -115,12 +147,31 @@ export default function App() {
       gut_subtype: result.gutSubtype,
       program_start_date: today,
     };
+
+    // Si hay sesión, guarda en Supabase
+    if (session) {
+      const saved = await saveProfileToDb(session.user.id, result);
+      if (saved) setProfile(saved);
+
+      await recheckAccess();
+      // Si tiene acceso vigente, entra al programa
+      if (accessStatus === "paid" || accessStatus === "trial") {
+        setActiveTab("today");
+        setStage("app");
+        return;
+      }
+      // Sin acceso, muestra gate
+      setStage("gate");
+      return;
+    }
+
+    // Sin sesión: guarda perfil local y muestra gate para pedir compra
     localStorage.setItem("sr_profile", JSON.stringify(localProfile));
     setProfile(localProfile);
-    setActiveTab("today");
-    setStage("app");
+    setStage("gate");
   }
 
+  // Reinicio: solo limpia local, NO cierra sesión Supabase
   function handleRestart() {
     setMainAnswers(null);
     setResult(null);
@@ -130,6 +181,12 @@ export default function App() {
     setProfile(null);
     setActiveTab("today");
     setStage("welcome");
+  }
+
+  // Sign out real
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    handleRestart();
   }
 
   function handleReevaluate() {
@@ -144,31 +201,33 @@ export default function App() {
     setBreathingDuration(5);
     setStage("breathing");
   }
-
   function openBreathingFromTab(patternKey, duration) {
     setBreathingType(patternKey);
     setBreathingDuration(duration);
     setStage("breathing");
   }
-
-  function openBreathingFromPillars() {
-    setActiveTab("breathe");
-  }
+  function openBreathingFromPillars() { setActiveTab("breathe"); }
 
   function handleBreathingClose() {
-    // Log session
     try {
       const log = JSON.parse(localStorage.getItem("sr_breathing_log") || "[]");
       log.push({
         date: new Date().toISOString().split("T")[0],
-        minutes: breathingDuration,
-        pattern: breathingType,
-        timestamp: Date.now(),
+        minutes: breathingDuration, pattern: breathingType, timestamp: Date.now(),
       });
       localStorage.setItem("sr_breathing_log", JSON.stringify(log));
-    } catch (e) {}
+    } catch {}
     setStage("app");
   }
+
+  // ── Auto-redirect si el acceso cambia mientras está en la app ─
+  useEffect(() => {
+    if (stage !== "app") return;
+    if (!session) return; // freemium local: no aplica
+    if (accessStatus === "expired" || accessStatus === "revoked") {
+      setStage("gate");
+    }
+  }, [accessStatus, stage, session]);
 
   // ── Render ────────────────────────────────────────────────────
   if (stage === "loading") {
@@ -185,9 +244,7 @@ export default function App() {
     );
   }
 
-  if (stage === "welcome") {
-    return <Welcome onStart={() => setStage("quiz")} />;
-  }
+  if (stage === "welcome") return <Welcome onStart={() => setStage("quiz")} />;
 
   if (stage === "quiz") {
     return (
@@ -210,6 +267,26 @@ export default function App() {
     );
   }
 
+  if (stage === "gate") {
+    return (
+      <AccessGate
+        result={result || profile}
+        status={accessStatus}
+        onSignIn={() => setStage("auth")}
+        onGoBack={result ? () => setStage("result") : () => setStage("welcome")}
+      />
+    );
+  }
+
+  if (stage === "auth") {
+    return (
+      <Auth
+        phenotypeKey={result?.dominant || profile?.phenotype}
+        onBack={() => setStage(result ? "result" : "welcome")}
+      />
+    );
+  }
+
   if (stage === "breathing" && profile) {
     return (
       <BreathingSession
@@ -221,7 +298,6 @@ export default function App() {
     );
   }
 
-  // ── Main app with tabs ────────────────────────────────────────
   if (stage === "app" && profile) {
     return (
       <div className="min-h-screen bg-bone">
@@ -235,9 +311,16 @@ export default function App() {
           <PillarsHub profile={profile} onOpenBreathing={openBreathingFromPillars} />
         )}
         {activeTab === "profile" && (
-          <ProfileTab profile={profile} onReevaluate={handleReevaluate} onSignOut={handleRestart} />
+          <ProfileTab
+            profile={profile}
+            session={session}
+            accessStatus={accessStatus}
+            onReevaluate={handleReevaluate}
+            onSignOut={session ? handleSignOut : handleRestart}
+          />
         )}
         <BottomNav active={activeTab} onChange={setActiveTab} />
+        <UpdatePrompt />
       </div>
     );
   }
