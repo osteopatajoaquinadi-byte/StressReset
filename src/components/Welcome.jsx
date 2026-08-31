@@ -44,6 +44,10 @@ export default function Welcome({ onStart }) {
         >
           Comenzar evaluación
         </button>
+        <p className="text-[10.5px] text-mute leading-relaxed text-center mt-3 px-2">
+          Herramienta educativa. No constituye diagnóstico ni reemplaza una
+          evaluación clínica profesional.
+        </p>
         <BrandFooter className="mt-4" />
       </div>
     </div>

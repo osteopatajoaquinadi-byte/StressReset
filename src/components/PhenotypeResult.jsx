@@ -90,6 +90,21 @@ export default function PhenotypeResult({ result, onStartProgram, onRestart }) {
           </div>
         </div>
 
+        {/* Disclaimer clínico */}
+        <div className="px-6 pb-4">
+          <div className="bg-bone border border-line rounded-xl p-4">
+            <div className="flex items-start gap-2.5">
+              <div className="font-mono text-[11px] text-sage mt-0.5 flex-shrink-0">ⓘ</div>
+              <p className="text-[11.5px] text-mute leading-relaxed">
+                Los rangos de interpretación son orientativos y teóricos,
+                derivados del diseño de la escala. Nada de lo que ves aquí
+                constituye un diagnóstico ni reemplaza una evaluación clínica
+                profesional.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* CTAs */}
         <div className="px-6 pb-8 flex flex-col gap-3">
           <button
