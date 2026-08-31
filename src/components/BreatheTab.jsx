@@ -38,7 +38,7 @@ function getSessionHistory() {
   catch { return []; }
 }
 
-export default function BreatheTab({ onStartSession }) {
+export default function BreatheTab({ tier = "free", onStartSession, onRequestUpgrade }) {
   const [selectedPattern, setSelectedPattern] = useState(null);
   const [duration, setDuration] = useState(5);
 
@@ -47,9 +47,26 @@ export default function BreatheTab({ onStartSession }) {
   const todaySessions = history.filter(s => s.date === todayStr);
   const todayMinutes = todaySessions.reduce((s, e) => s + (e.minutes || 0), 0);
 
+  function isPatternLocked(patternKey) {
+    if (tier === "full" || tier === "week1") return false;
+    return patternKey !== "sigh";
+  }
+
   function handleStart() {
     if (!selectedPattern) return;
+    if (isPatternLocked(selectedPattern)) {
+      onRequestUpgrade && onRequestUpgrade();
+      return;
+    }
     onStartSession(selectedPattern, duration);
+  }
+
+  function handlePatternClick(patternKey) {
+    if (isPatternLocked(patternKey)) {
+      onRequestUpgrade && onRequestUpgrade();
+      return;
+    }
+    setSelectedPattern(patternKey);
   }
 
   return (
@@ -86,23 +103,33 @@ export default function BreatheTab({ onStartSession }) {
       <div className="flex flex-col gap-2.5 mb-6">
         {PATTERNS.map((p) => {
           const isSelected = selectedPattern === p.key;
+          const locked = isPatternLocked(p.key);
           return (
             <button
               key={p.key}
-              onClick={() => setSelectedPattern(p.key)}
+              onClick={() => handlePatternClick(p.key)}
               className={`text-left px-4 py-3.5 rounded-xl border transition-colors ${
-                isSelected
+                locked
+                  ? "border-line bg-bone-soft/60 opacity-70 hover:opacity-100"
+                  : isSelected
                   ? "border-chloro bg-sage-soft"
                   : "border-line bg-paper hover:border-sage"
               }`}
             >
               <div className="flex items-baseline gap-2 mb-1">
-                <span className={`font-mono text-[14px] font-semibold ${isSelected ? "text-chloro" : "text-ink"}`}>
+                <span className={`font-mono text-[14px] font-semibold ${
+                  locked ? "text-mute" : isSelected ? "text-chloro" : "text-ink"
+                }`}>
                   {p.name}
                 </span>
                 <span className="text-[12px] text-mute">— {p.desc}</span>
+                {locked && (
+                  <span className="ml-auto font-mono text-[9px] uppercase tracking-widest text-sage">
+                    ⟐ Bloqueado
+                  </span>
+                )}
               </div>
-              {isSelected && (
+              {isSelected && !locked && (
                 <>
                   <p className="text-[12px] text-ink-soft leading-relaxed mt-2">{p.detail}</p>
                   <p className="font-mono text-[9.5px] text-sage uppercase tracking-wide mt-2">{p.for}</p>

@@ -160,3 +160,32 @@ drop trigger if exists sr_profiles_updated_at on public.sr_profiles;
 create trigger sr_profiles_updated_at
   before update on public.sr_profiles
   for each row execute function public.handle_updated_at();
+
+-- ==========================================================
+-- MIGRACIÓN v2.1 — Tier de acceso (free / week1 / full)
+-- Ejecutar en Supabase SQL Editor. Idempotente.
+-- ==========================================================
+
+alter table public.sr_profiles
+  add column if not exists access_tier text
+  default 'free'
+  check (access_tier in ('free', 'week1', 'full'));
+
+update public.sr_profiles set access_tier = 'full'
+  where access_status = 'paid' and access_tier = 'free';
+
+update public.sr_profiles set access_tier = 'full'
+  where access_status = 'trial' and access_tier = 'free';
+
+-- La política de update debe también proteger access_tier
+drop policy if exists "profile_update_own" on public.sr_profiles;
+create policy "profile_update_own" on public.sr_profiles
+  for update using (auth.uid() = id)
+  with check (
+    auth.uid() = id
+    and access_status is not distinct from (select access_status from public.sr_profiles where id = auth.uid())
+    and access_expires_at is not distinct from (select access_expires_at from public.sr_profiles where id = auth.uid())
+    and access_tier is not distinct from (select access_tier from public.sr_profiles where id = auth.uid())
+    and purchase_source is not distinct from (select purchase_source from public.sr_profiles where id = auth.uid())
+    and purchase_ref is not distinct from (select purchase_ref from public.sr_profiles where id = auth.uid())
+  );

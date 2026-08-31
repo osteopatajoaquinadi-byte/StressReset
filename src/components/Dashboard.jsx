@@ -21,7 +21,7 @@ function saveLocalCompletions(data) {
   localStorage.setItem("sr_completions", JSON.stringify(data));
 }
 
-export default function Dashboard({ profile, session, onOpenBreathing, onSignOut }) {
+export default function Dashboard({ profile, session, tier = "free", onOpenBreathing, onSignOut, onRequestUpgrade }) {
   const [completions, setCompletions] = useState(new Set());
   const [weekDots, setWeekDots] = useState({});
   const [loading, setLoading] = useState(true);
@@ -34,6 +34,18 @@ export default function Dashboard({ profile, session, onOpenBreathing, onSignOut
   const clampedDay = Math.min(Math.max(dayNum, 1), 28);
   const tasks = getTasksForDay(profile.phenotype, clampedDay);
   const hasAuth = session && session.user;
+
+  // Helper: si una tarea está bloqueada según el tier del usuario
+  function isTaskLocked(task) {
+    if (tier === "full") return false;
+    // Free tier: solo suspiro fisiológico disponible
+    if (tier === "free") return task.key !== "physiological_sigh";
+    // Week1 tier: bloqueado si la semana del programa avanzó más allá de la 1
+    if (tier === "week1") {
+      return weekNum > 1 && task.weekFrom > 1;
+    }
+    return false;
+  }
 
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
@@ -168,8 +180,8 @@ export default function Dashboard({ profile, session, onOpenBreathing, onSignOut
           </div>
         ) : (
           <>
-            {["essential", "recommended", "optional"].map((tier) => {
-              const tierTasks = tasks.filter((t) => classifyTask(t) === tier);
+            {["essential", "recommended", "optional"].map((tierLevel) => {
+              const tierTasks = tasks.filter((t) => classifyTask(t) === tierLevel);
               if (tierTasks.length === 0) return null;
 
               const tierMeta = {
@@ -191,10 +203,10 @@ export default function Dashboard({ profile, session, onOpenBreathing, onSignOut
                   color: "text-mute",
                   icon: "◦",
                 },
-              }[tier];
+              }[tierLevel];
 
               return (
-                <div key={tier} className="mb-6">
+                <div key={tierLevel} className="mb-6">
                   <div className="flex items-baseline gap-2 mb-2.5">
                     <span className={`font-mono text-[10px] font-semibold ${tierMeta.color}`}>
                       {tierMeta.icon}
@@ -210,13 +222,44 @@ export default function Dashboard({ profile, session, onOpenBreathing, onSignOut
                   <div className="flex flex-col gap-2.5">
                     {tierTasks.map((task) => {
                       const isDone = completions.has(task.key);
+                      const isLocked = isTaskLocked(task);
+
+                      // Renderizado especial para tareas bloqueadas
+                      if (isLocked) {
+                        return (
+                          <button
+                            key={task.key}
+                            onClick={onRequestUpgrade}
+                            className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-line bg-bone-soft/60 text-left hover:border-sage/50 transition-colors group"
+                          >
+                            <div className="w-[18px] h-[18px] rounded-[5px] border-[1.5px] border-mute/40 flex-shrink-0 flex items-center justify-center">
+                              <svg width="9" height="10" viewBox="0 0 9 10" fill="none">
+                                <path d="M2 4.5V3a2.5 2.5 0 015 0v1.5m-6 0h7v4.5H1V4.5z"
+                                  stroke="currentColor" strokeWidth="1.2" className="text-mute" fill="none" />
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[13px] leading-snug text-mute">
+                                {task.label}
+                              </div>
+                              <div className="font-mono text-[9.5px] uppercase tracking-wide mt-0.5 text-mute">
+                                {PILLAR_LABELS[task.pillar]}
+                              </div>
+                            </div>
+                            <span className="font-mono text-[9.5px] uppercase tracking-wide text-sage group-hover:text-chloro transition-colors">
+                              Desbloquear
+                            </span>
+                          </button>
+                        );
+                      }
+
                       return (
                         <div
                           key={task.key}
                           className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-colors ${
                             isDone
                               ? "bg-sage-soft border-transparent"
-                              : tier === "essential"
+                              : tierLevel === "essential"
                               ? "bg-paper border-chloro/25"
                               : "bg-paper border-line"
                           }`}

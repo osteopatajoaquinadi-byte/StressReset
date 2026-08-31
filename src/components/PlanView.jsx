@@ -12,7 +12,7 @@ function loadLocalCompletions() {
   catch { return {}; }
 }
 
-export default function PlanView({ profile }) {
+export default function PlanView({ profile, tier = "free", onRequestUpgrade }) {
   const today = new Date().toISOString().split("T")[0];
   const startDate = profile.program_start_date || today;
   const currentDay = Math.min(daysBetween(startDate, today) + 1, 28);
@@ -27,6 +27,13 @@ export default function PlanView({ profile }) {
     "+ fuerza/movimiento + frío/calor",
     "+ sprints + sauna + integración completa",
   ];
+
+  function isWeekLocked(weekNum) {
+    if (tier === "full") return false;
+    if (tier === "week1") return weekNum > 1;
+    // free: todas bloqueadas (aunque en free el usuario no llega aquí normalmente)
+    return true;
+  }
 
   return (
     <div className="max-w-md mx-auto px-5 pt-8 pb-24">
@@ -67,7 +74,9 @@ export default function PlanView({ profile }) {
         {weeks.map((weekNum) => {
           const isOpen = expandedWeek === weekNum;
           const isCurrent = Math.ceil(currentDay / 7) === weekNum;
-          const isLocked = weekNum > Math.ceil(currentDay / 7);
+          const isFuture = weekNum > Math.ceil(currentDay / 7);
+          const isTierLocked = isWeekLocked(weekNum);
+          const isLocked = isFuture || isTierLocked;
           const weekTasks = getTasksForDay(profile.phenotype, weekNum * 7);
           const prevWeekTasks = weekNum > 1 ? getTasksForDay(profile.phenotype, (weekNum - 1) * 7) : [];
           const newTasks = weekTasks.filter(t => !prevWeekTasks.find(p => p.key === t.key));
@@ -79,7 +88,13 @@ export default function PlanView({ profile }) {
               "border-line bg-paper"
             }`}>
               <button
-                onClick={() => setExpandedWeek(isOpen ? null : weekNum)}
+                onClick={() => {
+                  if (isTierLocked && onRequestUpgrade) {
+                    onRequestUpgrade();
+                    return;
+                  }
+                  setExpandedWeek(isOpen ? null : weekNum);
+                }}
                 className="w-full flex items-center gap-3 px-4 py-4 text-left"
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono text-[12px] font-semibold ${
@@ -95,9 +110,14 @@ export default function PlanView({ profile }) {
                   </div>
                   <div className="text-[11px] text-mute mt-0.5">{weekDescs[weekNum - 1]}</div>
                 </div>
-                {isCurrent && (
+                {isCurrent && !isTierLocked && (
                   <span className="font-mono text-[9px] uppercase tracking-widest text-chloro bg-sage-soft px-2 py-1 rounded-full">
                     Actual
+                  </span>
+                )}
+                {isTierLocked && (
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-sage">
+                    ⟐ Desbloquear
                   </span>
                 )}
                 <svg width="12" height="12" viewBox="0 0 12 12" className={`text-mute transition-transform ${isOpen ? "rotate-180" : ""}`}>

@@ -15,12 +15,12 @@ import PillarsHub from "./components/PillarsHub";
 import ProfileTab from "./components/ProfileTab";
 import { MAIN_BLOCKS, BLOCK_GUT } from "./data/quizQuestions";
 import { calculatePhenotype } from "./utils/scoring";
-import { useAccess } from "./hooks/useAccess";
+import { useAccess, canAccessPattern } from "./hooks/useAccess";
 
-// Stages:
-//   loading | welcome | quiz | gut_quiz | result | gate | auth | app | breathing
+// Stages: loading | welcome | quiz | gut_quiz | result | app | gate | auth | breathing
 export default function App() {
   const [stage, setStage] = useState("loading");
+  const [prevStage, setPrevStage] = useState("app");
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [result, setResult] = useState(null);
@@ -28,8 +28,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("today");
   const [breathingType, setBreathingType] = useState("morning");
   const [breathingDuration, setBreathingDuration] = useState(5);
+  const [gateReason, setGateReason] = useState("start");
 
-  const { status: accessStatus, recheck: recheckAccess } = useAccess(session);
+  const { status: accessStatus, tier, expiresAt, recheck: recheckAccess } = useAccess(session);
 
   const flatMainQuestions = MAIN_BLOCKS.flatMap((block) =>
     block.questions.map((text, index) => ({
@@ -40,19 +41,16 @@ export default function App() {
     blockKey: "GUT", blockTitle: "Profundización intestinal", index, text,
   }));
 
-  // ── Init ──────────────────────────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (s) {
         setSession(s);
         fetchProfileFromDb(s.user.id);
       } else {
-        // No hay sesión: revisamos si hay perfil local (usuario freemium sin cuenta)
         const localProfile = localStorage.getItem("sr_profile");
         if (localProfile) {
           try {
             setProfile(JSON.parse(localProfile));
-            // Sin sesión y con perfil local → puede seguir a "app" pero será freemium
             setStage("app");
             return;
           } catch { localStorage.removeItem("sr_profile"); }
@@ -87,7 +85,6 @@ export default function App() {
       setProfile(data);
       setStage("app");
     } else {
-      // Hay cuenta pero aún no completó el quiz
       setStage("welcome");
     }
   }
@@ -97,18 +94,12 @@ export default function App() {
     const { data } = await supabase
       .from("sr_profiles")
       .upsert({
-        id: userId,
-        email: session?.user?.email,
-        phenotype: r.dominant,
-        secondary: r.secondary,
-        is_mixed: r.isMixed,
-        percentages: r.percentages,
-        scores: r.scores,
-        gut_subtype: r.gutSubtype,
+        id: userId, email: session?.user?.email,
+        phenotype: r.dominant, secondary: r.secondary, is_mixed: r.isMixed,
+        percentages: r.percentages, scores: r.scores, gut_subtype: r.gutSubtype,
         program_start_date: today,
       })
-      .select()
-      .single();
+      .select().single();
     return data;
   }
 
@@ -118,12 +109,8 @@ export default function App() {
     flatMainQuestions.forEach((q, i) => { answers[q.blockKey].push(flatSelections[i]); });
     setMainAnswers(answers);
     const preliminary = calculatePhenotype(answers);
-    if (preliminary.dominant === "C") {
-      setStage("gut_quiz");
-    } else {
-      setResult(preliminary);
-      setStage("result");
-    }
+    if (preliminary.dominant === "C") setStage("gut_quiz");
+    else { setResult(preliminary); setStage("result"); }
   }
 
   function handleGutComplete(flatGutSelections) {
@@ -133,75 +120,65 @@ export default function App() {
     setStage("result");
   }
 
-  // ── Start program: usuario quiere entrar al plan ─────────────
-  // Decisión clave: si tiene acceso pagado, entra directo.
-  // Si no, va al gate comercial.
+  // Después del quiz, va DIRECTO al app (dashboard). El gate se abre por acción.
   async function handleStartProgram() {
     const today = new Date().toISOString().split("T")[0];
     const localProfile = {
-      phenotype: result.dominant,
-      secondary: result.secondary,
-      is_mixed: result.isMixed,
-      percentages: result.percentages,
-      scores: result.scores,
-      gut_subtype: result.gutSubtype,
+      phenotype: result.dominant, secondary: result.secondary, is_mixed: result.isMixed,
+      percentages: result.percentages, scores: result.scores, gut_subtype: result.gutSubtype,
       program_start_date: today,
     };
 
-    // Si hay sesión, guarda en Supabase
     if (session) {
       const saved = await saveProfileToDb(session.user.id, result);
       if (saved) setProfile(saved);
-
-      await recheckAccess();
-      // Si tiene acceso vigente, entra al programa
-      if (accessStatus === "paid" || accessStatus === "trial") {
-        setActiveTab("today");
-        setStage("app");
-        return;
-      }
-      // Sin acceso, muestra gate
-      setStage("gate");
-      return;
+    } else {
+      localStorage.setItem("sr_profile", JSON.stringify(localProfile));
+      setProfile(localProfile);
     }
-
-    // Sin sesión: guarda perfil local y muestra gate para pedir compra
-    localStorage.setItem("sr_profile", JSON.stringify(localProfile));
-    setProfile(localProfile);
-    setStage("gate");
+    setActiveTab("today");
+    setStage("app");
   }
 
-  // Reinicio: solo limpia local, NO cierra sesión Supabase
   function handleRestart() {
-    setMainAnswers(null);
-    setResult(null);
+    setMainAnswers(null); setResult(null);
     localStorage.removeItem("sr_profile");
     localStorage.removeItem("sr_completions");
     localStorage.removeItem("sr_breathing_log");
-    setProfile(null);
-    setActiveTab("today");
-    setStage("welcome");
+    setProfile(null); setActiveTab("today"); setStage("welcome");
   }
 
-  // Sign out real
   async function handleSignOut() {
     await supabase.auth.signOut();
     handleRestart();
   }
 
   function handleReevaluate() {
-    setMainAnswers(null);
-    setResult(null);
-    setStage("quiz");
+    setMainAnswers(null); setResult(null); setStage("quiz");
+  }
+
+  // ── Gate: se abre cuando el usuario toca contenido bloqueado ──
+  function requestUpgrade(reason = "start") {
+    setGateReason(reason);
+    setPrevStage(stage === "breathing" ? "app" : stage);
+    setStage("gate");
   }
 
   // ── Breathing ─────────────────────────────────────────────────
-  function openBreathingFromDashboard(type) {
-    setBreathingType(type || "morning");
+  function openBreathingFromDashboard(patternKey) {
+    if (!canAccessPattern(tier, patternKey || "morning")) {
+      requestUpgrade("lockedPattern");
+      return;
+    }
+    setBreathingType(patternKey || "morning");
     setBreathingDuration(5);
     setStage("breathing");
   }
   function openBreathingFromTab(patternKey, duration) {
+    if (!canAccessPattern(tier, patternKey)) {
+      requestUpgrade("lockedPattern");
+      return;
+    }
     setBreathingType(patternKey);
     setBreathingDuration(duration);
     setStage("breathing");
@@ -220,13 +197,10 @@ export default function App() {
     setStage("app");
   }
 
-  // ── Auto-redirect si el acceso cambia mientras está en la app ─
   useEffect(() => {
     if (stage !== "app") return;
-    if (!session) return; // freemium local: no aplica
-    if (accessStatus === "expired" || accessStatus === "revoked") {
-      setStage("gate");
-    }
+    if (!session) return;
+    if (accessStatus === "expired" || accessStatus === "revoked") requestUpgrade("start");
   }, [accessStatus, stage, session]);
 
   // ── Render ────────────────────────────────────────────────────
@@ -272,8 +246,10 @@ export default function App() {
       <AccessGate
         result={result || profile}
         status={accessStatus}
+        tier={tier}
+        reason={gateReason}
         onSignIn={() => setStage("auth")}
-        onGoBack={result ? () => setStage("result") : () => setStage("welcome")}
+        onGoBack={() => setStage(prevStage)}
       />
     );
   }
@@ -282,7 +258,7 @@ export default function App() {
     return (
       <Auth
         phenotypeKey={result?.dominant || profile?.phenotype}
-        onBack={() => setStage(result ? "result" : "welcome")}
+        onBack={() => setStage(profile ? "app" : "welcome")}
       />
     );
   }
@@ -302,21 +278,30 @@ export default function App() {
     return (
       <div className="min-h-screen bg-bone">
         {activeTab === "today" && (
-          <Dashboard profile={profile} session={session}
-            onOpenBreathing={openBreathingFromDashboard} onSignOut={handleRestart} />
+          <Dashboard profile={profile} session={session} tier={tier}
+            onOpenBreathing={openBreathingFromDashboard}
+            onSignOut={handleRestart}
+            onRequestUpgrade={() => requestUpgrade("lockedTask")} />
         )}
-        {activeTab === "plan" && <PlanView profile={profile} />}
-        {activeTab === "breathe" && <BreatheTab onStartSession={openBreathingFromTab} />}
+        {activeTab === "plan" && (
+          <PlanView profile={profile} tier={tier}
+            onRequestUpgrade={() => requestUpgrade("lockedWeek")} />
+        )}
+        {activeTab === "breathe" && (
+          <BreatheTab tier={tier}
+            onStartSession={openBreathingFromTab}
+            onRequestUpgrade={() => requestUpgrade("lockedPattern")} />
+        )}
         {activeTab === "pillars" && (
           <PillarsHub profile={profile} onOpenBreathing={openBreathingFromPillars} />
         )}
         {activeTab === "profile" && (
           <ProfileTab
-            profile={profile}
-            session={session}
-            accessStatus={accessStatus}
+            profile={profile} session={session}
+            accessStatus={accessStatus} tier={tier} expiresAt={expiresAt}
             onReevaluate={handleReevaluate}
             onSignOut={session ? handleSignOut : handleRestart}
+            onRequestUpgrade={() => requestUpgrade("start")}
           />
         )}
         <BottomNav active={activeTab} onChange={setActiveTab} />
