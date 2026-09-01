@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PILLARS_CONTENT } from "../data/pillarsContent";
 
-export default function PillarsHub({ profile, onOpenBreathing }) {
+export default function PillarsHub({ profile, tier = "free", onOpenBreathing, onOpenFasting, onRequestUpgrade }) {
   const [expanded, setExpanded] = useState(null);
   const phenotype = profile.phenotype;
 
@@ -148,11 +148,24 @@ export default function PillarsHub({ profile, onOpenBreathing }) {
                   {pillar.action && (
                     <button
                       onClick={() => {
-                        if (pillar.action.type === "breathing") onOpenBreathing();
+                        if (pillar.action.type === "breathing") {
+                          onOpenBreathing && onOpenBreathing();
+                        } else if (pillar.action.type === "fasting") {
+                          if (tier !== "full") {
+                            onRequestUpgrade && onRequestUpgrade();
+                          } else {
+                            onOpenFasting && onOpenFasting();
+                          }
+                        }
                       }}
                       className="w-full text-[13px] font-medium py-3 rounded-xl border border-chloro text-chloro hover:bg-sage-soft transition-colors"
                     >
                       {pillar.action.label}
+                      {pillar.action.type === "fasting" && tier !== "full" && (
+                        <span className="ml-2 font-mono text-[10px] uppercase tracking-widest text-sage">
+                          ⟐ Programa completo
+                        </span>
+                      )}
                     </button>
                   )}
                 </div>

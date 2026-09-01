@@ -13,6 +13,7 @@ import PlanView from "./components/PlanView";
 import BreatheTab from "./components/BreatheTab";
 import PillarsHub from "./components/PillarsHub";
 import ProfileTab from "./components/ProfileTab";
+import FastingTracker from "./components/FastingTracker";
 import { MAIN_BLOCKS, BLOCK_GUT } from "./data/quizQuestions";
 import { calculatePhenotype } from "./utils/scoring";
 import { useAccess, canAccessPattern } from "./hooks/useAccess";
@@ -185,6 +186,14 @@ export default function App() {
   }
   function openBreathingFromPillars() { setActiveTab("breathe"); }
 
+  function openFasting() {
+    if (tier !== "full") {
+      requestUpgrade("lockedTask");
+      return;
+    }
+    setStage("fasting");
+  }
+
   function handleBreathingClose() {
     try {
       const log = JSON.parse(localStorage.getItem("sr_breathing_log") || "[]");
@@ -274,6 +283,15 @@ export default function App() {
     );
   }
 
+  if (stage === "fasting" && profile) {
+    return (
+      <FastingTracker
+        phenotype={profile.phenotype}
+        onClose={() => setStage("app")}
+      />
+    );
+  }
+
   if (stage === "app" && profile) {
     return (
       <div className="min-h-screen bg-bone">
@@ -293,7 +311,10 @@ export default function App() {
             onRequestUpgrade={() => requestUpgrade("lockedPattern")} />
         )}
         {activeTab === "pillars" && (
-          <PillarsHub profile={profile} onOpenBreathing={openBreathingFromPillars} />
+          <PillarsHub profile={profile} tier={tier}
+            onOpenBreathing={openBreathingFromPillars}
+            onOpenFasting={openFasting}
+            onRequestUpgrade={() => requestUpgrade("lockedTask")} />
         )}
         {activeTab === "profile" && (
           <ProfileTab
