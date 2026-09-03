@@ -99,6 +99,8 @@ export default function Dashboard({ profile, session, tier = "free", onOpenBreat
   async function toggleTask(taskKey) {
     const isDone = completions.has(taskKey);
     const next = new Set(completions);
+    const prevCompletions = new Set(completions);
+    const prevWeekDots = { ...weekDots };
 
     if (isDone) {
       next.delete(taskKey);
@@ -110,13 +112,22 @@ export default function Dashboard({ profile, session, tier = "free", onOpenBreat
 
     // Persist
     if (hasAuth) {
-      if (isDone) {
-        await supabase.from("sr_completions").delete()
-          .eq("user_id", session.user.id).eq("date", today).eq("task_key", taskKey);
-      } else {
-        await supabase.from("sr_completions").upsert({
-          user_id: session.user.id, date: today, task_key: taskKey,
-        });
+      try {
+        if (isDone) {
+          const { error } = await supabase.from("sr_completions").delete()
+            .eq("user_id", session.user.id).eq("date", today).eq("task_key", taskKey);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("sr_completions").upsert({
+            user_id: session.user.id, date: today, task_key: taskKey,
+          });
+          if (error) throw error;
+        }
+      } catch (e) {
+        // Falla: revierte UI y avisa
+        console.error("toggleTask sync error:", e);
+        setCompletions(prevCompletions);
+        setWeekDots(prevWeekDots);
       }
     } else {
       const all = loadLocalCompletions();

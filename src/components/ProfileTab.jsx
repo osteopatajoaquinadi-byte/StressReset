@@ -140,9 +140,21 @@ export default function ProfileTab({
       </div>
 
       {/* Access status */}
-      <AccessBadge status={accessStatus} expiresAt={
-        profile?.access_expires_at ? new Date(profile.access_expires_at) : null
-      } />
+      <AccessBadge
+        status={accessStatus}
+        tier={tier}
+        expiresAt={expiresAt || (profile?.access_expires_at ? new Date(profile.access_expires_at) : null)}
+      />
+
+      {/* CTA de upgrade si free/week1 */}
+      {onRequestUpgrade && (accessStatus !== "paid" || tier === "week1") && (
+        <button
+          onClick={onRequestUpgrade}
+          className="w-full bg-chloro text-paper font-sans font-medium text-[13px] py-3 rounded-xl hover:bg-chloro-deep transition-colors mb-3"
+        >
+          {tier === "week1" ? "Completar programa" : "Ver planes de acceso"}
+        </button>
+      )}
 
       {/* Install PWA prompt */}
       <InstallPWA />

@@ -7,6 +7,7 @@ export default function Auth({ phenotypeKey, onBack }) {
   const [mode, setMode] = useState("login"); // "login" | "signup"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   async function handleSubmit() {
     if (!email || !email.includes("@")) {
@@ -20,6 +21,7 @@ export default function Auth({ phenotypeKey, onBack }) {
 
     setLoading(true);
     setError("");
+    setNotice("");
 
     try {
       let result;
@@ -44,11 +46,22 @@ export default function Auth({ phenotypeKey, onBack }) {
         } else if (result.error.message.includes("already registered")) {
           setError("Ese email ya tiene cuenta. Usa 'Iniciar sesión'.");
           setMode("login");
+        } else if (result.error.message.includes("Email not confirmed")) {
+          setError("Todavía no confirmaste tu email. Revisa tu bandeja de entrada (y spam).");
         } else {
           setError(result.error.message);
         }
+      } else if (mode === "signup") {
+        // Caso: signup exitoso pero sin sesión → Supabase requiere confirmar email
+        if (!result.data?.session) {
+          setNotice(
+            "Cuenta creada. Te enviamos un email de confirmación — revisa tu bandeja (y spam) y haz clic en el enlace. Después vuelve aquí e inicia sesión."
+          );
+          setMode("login");
+          setPassword("");
+        }
+        // Si data.session existe, onAuthStateChange redirige automáticamente
       }
-      // Si fue exitoso, onAuthStateChange en App.jsx maneja el redirect
     } catch (e) {
       setError("Hubo un problema. Intenta de nuevo.");
     } finally {
@@ -106,6 +119,11 @@ export default function Auth({ phenotypeKey, onBack }) {
 
           {error && (
             <p className="text-warn text-[12px] font-mono mb-3">{error}</p>
+          )}
+          {notice && (
+            <div className="bg-sage-soft border border-chloro/25 rounded-xl p-3 mb-3">
+              <p className="text-[12.5px] text-ink-soft leading-snug">{notice}</p>
+            </div>
           )}
 
           <button

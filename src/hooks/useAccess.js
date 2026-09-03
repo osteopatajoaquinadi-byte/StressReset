@@ -73,43 +73,25 @@ async function claimPendingPurchase(user) {
   const email = user.email?.toLowerCase().trim();
   if (!email) return null;
 
-  const { data: purchases } = await supabase
-    .from("sr_purchases")
-    .select("*")
-    .eq("email", email)
-    .in("event_type", ["PURCHASE_APPROVED", "PURCHASE_COMPLETE"])
-    .order("processed_at", { ascending: false });
-
-  if (!purchases || purchases.length === 0) return null;
-
-  // Determinar tier más alto comprado (full > week1)
-  const hasFullTier = purchases.some(
-    (p) => p.raw_payload?.tier === "full" || p.raw_payload?.tier === "upgrade_to_full"
-  );
-  const tier = hasFullTier ? "full" : "week1";
-
-  const purchase = purchases[0];
-  const expiresAt = new Date();
-  expiresAt.setMonth(expiresAt.getMonth() + 12);
-
-  const { data: updated } = await supabase
-    .from("sr_profiles")
-    .upsert({
-      id: user.id,
-      email,
-      access_status: "paid",
-      access_tier: tier,
-      access_expires_at: expiresAt.toISOString(),
-      purchase_source: purchase.source,
-      purchase_ref: purchase.external_ref,
-      purchase_amount: purchase.amount,
-      purchase_currency: purchase.currency,
-      purchase_date: purchase.processed_at,
-    })
-    .select()
-    .single();
-
-  return updated;
+  // Llama a la Edge Function `claim-purchase` — usa service_role para
+  // escribir campos access_* que la política RLS bloquea al usuario.
+  try {
+    const { data, error } = await supabase.functions.invoke("claim-purchase");
+    if (error) {
+      console.warn("claim-purchase invoke error:", error);
+      return null;
+    }
+    if (data?.claimed) {
+      return {
+        access_tier: data.tier,
+        access_expires_at: data.expires_at,
+      };
+    }
+    return null;
+  } catch (e) {
+    console.warn("claim-purchase exception:", e);
+    return null;
+  }
 }
 
 /**
