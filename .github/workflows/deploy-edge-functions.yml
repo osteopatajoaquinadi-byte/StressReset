@@ -24,8 +24,11 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy hotmart-webhook
+      - name: Deploy hotmart-webhook (no JWT)
         run: supabase functions deploy hotmart-webhook --project-ref $PROJECT_ID --no-verify-jwt
+
+      - name: Deploy claim-purchase (requires JWT)
+        run: supabase functions deploy claim-purchase --project-ref $PROJECT_ID
 
       - name: Set HOTMART_WEBHOOK_TOKEN secret
         run: supabase secrets set HOTMART_WEBHOOK_TOKEN="${{ secrets.HOTMART_WEBHOOK_TOKEN }}" --project-ref $PROJECT_ID
