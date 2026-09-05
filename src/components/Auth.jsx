@@ -26,10 +26,16 @@ export default function Auth({ phenotypeKey, onBack }) {
     try {
       let result;
       if (mode === "signup") {
+        // emailRedirectTo: URL a la que Supabase redirige tras confirmar el email.
+        // Debe estar en la whitelist de Redirect URLs en Supabase Dashboard.
+        // Usa la origen actual → funciona igual en dev (localhost) y en producción.
+        const emailRedirectTo = `${window.location.origin}/`;
+
         result = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password,
           options: {
+            emailRedirectTo,
             data: { source: "stressreset", phenotype: phenotypeKey },
           },
         });
@@ -41,21 +47,28 @@ export default function Auth({ phenotypeKey, onBack }) {
       }
 
       if (result.error) {
-        if (result.error.message.includes("Invalid login")) {
+        const msg = result.error.message || "";
+        if (msg.includes("Invalid login")) {
           setError("Email o contraseña incorrectos. ¿Necesitas crear una cuenta?");
-        } else if (result.error.message.includes("already registered")) {
+        } else if (msg.includes("already registered")) {
           setError("Ese email ya tiene cuenta. Usa 'Iniciar sesión'.");
           setMode("login");
-        } else if (result.error.message.includes("Email not confirmed")) {
-          setError("Todavía no confirmaste tu email. Revisa tu bandeja de entrada (y spam).");
+        } else if (msg.includes("Email not confirmed")) {
+          setError("Todavía no confirmaste tu email. Revisa tu bandeja de entrada y spam. Si no llega, escribe a hola@sakros.cl");
+        } else if (msg.toLowerCase().includes("rate limit") || msg.includes("email rate limit")) {
+          setError("Hemos superado el límite temporal de envío de emails. Espera 30 minutos y vuelve a intentarlo, o escribe a hola@sakros.cl");
+        } else if (msg.toLowerCase().includes("email") && msg.toLowerCase().includes("send")) {
+          setError("No pudimos enviar el email de confirmación. Escribe a hola@sakros.cl para activar tu cuenta manualmente.");
         } else {
-          setError(result.error.message);
+          setError(msg || "Hubo un problema. Intenta de nuevo.");
         }
       } else if (mode === "signup") {
         // Caso: signup exitoso pero sin sesión → Supabase requiere confirmar email
         if (!result.data?.session) {
           setNotice(
-            "Cuenta creada. Te enviamos un email de confirmación — revisa tu bandeja (y spam) y haz clic en el enlace. Después vuelve aquí e inicia sesión."
+            "Cuenta creada. Te enviamos un email de confirmación a " + email.trim().toLowerCase() +
+            ". Revisa tu bandeja de entrada y también la carpeta de spam — el email puede tardar unos minutos. " +
+            "Si no llega en 15 minutos, escribe a hola@sakros.cl con tu email para activar tu cuenta manualmente."
           );
           setMode("login");
           setPassword("");
@@ -64,6 +77,38 @@ export default function Auth({ phenotypeKey, onBack }) {
       }
     } catch (e) {
       setError("Hubo un problema. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendConfirmation() {
+    if (!email || !email.includes("@")) {
+      setError("Ingresa tu email primero.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setNotice("");
+    try {
+      const emailRedirectTo = `${window.location.origin}/`;
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim().toLowerCase(),
+        options: { emailRedirectTo },
+      });
+      if (error) {
+        const msg = error.message || "";
+        if (msg.toLowerCase().includes("rate limit")) {
+          setError("Superamos el límite de reenvíos. Espera 30 minutos o escribe a hola@sakros.cl");
+        } else {
+          setError(msg || "No pudimos reenviar el email. Escribe a hola@sakros.cl");
+        }
+      } else {
+        setNotice("Email reenviado. Revisa tu bandeja de entrada y la carpeta de spam.");
+      }
+    } catch (e) {
+      setError("No pudimos reenviar el email. Escribe a hola@sakros.cl");
     } finally {
       setLoading(false);
     }
@@ -124,6 +169,17 @@ export default function Auth({ phenotypeKey, onBack }) {
             <div className="bg-sage-soft border border-chloro/25 rounded-xl p-3 mb-3">
               <p className="text-[12.5px] text-ink-soft leading-snug">{notice}</p>
             </div>
+          )}
+
+          {/* Botón de reenvío: aparece si hay notice de cuenta creada o error de email no confirmado */}
+          {mode === "login" && (notice || (error && error.includes("confirm"))) && email.includes("@") && (
+            <button
+              onClick={handleResendConfirmation}
+              disabled={loading}
+              className="w-full text-[12.5px] text-sage border border-sage/50 rounded-xl py-2.5 hover:bg-sage-soft transition-colors mb-3 disabled:opacity-50"
+            >
+              {loading ? "Reenviando..." : "Reenviar email de confirmación"}
+            </button>
           )}
 
           <button
