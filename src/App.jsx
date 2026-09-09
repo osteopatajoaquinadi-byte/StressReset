@@ -82,20 +82,58 @@ export default function App() {
   async function fetchProfileFromDb(userId) {
     const { data } = await supabase
       .from("sr_profiles").select("*").eq("id", userId).maybeSingle();
+
     if (data && data.phenotype) {
+      // Perfil ya existe en Supabase — usarlo
       setProfile(data);
       setStage("app");
-    } else {
-      setStage("welcome");
+      return;
     }
+
+    // No hay perfil en Supabase. Chequear si hay uno en localStorage
+    // (caso típico: usuario hizo el quiz sin cuenta y ahora se acaba de registrar)
+    const localProfileStr = localStorage.getItem("sr_profile");
+    if (localProfileStr) {
+      try {
+        const localProfile = JSON.parse(localProfileStr);
+        if (localProfile?.phenotype) {
+          // Obtener email de la sesión actual (session state puede no estar aún)
+          const { data: { user } } = await supabase.auth.getUser();
+          const emailFromAuth = user?.email;
+
+          // Migrar el perfil local a Supabase
+          const migrated = await saveProfileToDb(userId, {
+            dominant: localProfile.phenotype,
+            secondary: localProfile.secondary,
+            isMixed: localProfile.is_mixed,
+            percentages: localProfile.percentages,
+            scores: localProfile.scores,
+            gutSubtype: localProfile.gut_subtype,
+          }, emailFromAuth);
+          if (migrated) {
+            setProfile(migrated);
+            setStage("app");
+            // Limpiar el perfil local ahora que está en Supabase
+            localStorage.removeItem("sr_profile");
+            return;
+          }
+        }
+      } catch {
+        localStorage.removeItem("sr_profile");
+      }
+    }
+
+    // No hay perfil en ningún lado → tiene que hacer el quiz
+    setStage("welcome");
   }
 
-  async function saveProfileToDb(userId, r) {
+  async function saveProfileToDb(userId, r, emailOverride) {
     const today = new Date().toISOString().split("T")[0];
+    const email = emailOverride || session?.user?.email;
     const { data } = await supabase
       .from("sr_profiles")
       .upsert({
-        id: userId, email: session?.user?.email,
+        id: userId, email,
         phenotype: r.dominant, secondary: r.secondary, is_mixed: r.isMixed,
         percentages: r.percentages, scores: r.scores, gut_subtype: r.gutSubtype,
         program_start_date: today,
